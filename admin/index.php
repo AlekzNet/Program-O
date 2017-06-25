@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: index.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -82,7 +82,7 @@ $newVersionAvailable = "Program O $githubVersion is now available for the "
     . '.zip">Click here</a> to download it.<br> (You are currently using version ' . VERSION . ' of the '
     . $branches[$branch] . ' branch)';
 
-$version = (compareVersions(VERSION, $githubVersion) >= 0) ? $upToDate : $newVersionAvailable;
+$version = (version_compare(VERSION, $githubVersion, '>=')) ? $upToDate : $newVersionAvailable;
 $dbConn = db_open();
 
 if ($get_vars['page'] == 'logout')
@@ -225,7 +225,7 @@ $content = str_replace('[myPage]', $curPage, $content);
 $content = str_replace('[divDecoration]', $divDecoration, $content);
 $content = str_replace('[blank]', '', $content);
 
-  //session_gc();
+  pgo_session_gc();
   exit($content);
 
 /**
@@ -334,6 +334,14 @@ function makeLeftLinks()
     $out = array(
         array( # Change bot
             '[linkClass]' => ' class="[curClass]"',
+            '[linkHref]' => ' href="index.php"',
+            '[linkOnclick]' => '',
+            '[linkAlt]' => ' alt="Admin Home"',
+            '[linkTitle]' => ' title="Admin Home"',
+            '[linkLabel]' => 'Home'
+        ),
+        array( # Home
+            '[linkClass]' => ' class="[curClass]"',
             '[linkHref]' => ' href="index.php?page=select_bots"',
             '[linkOnclick]' => '',
             '[linkAlt]' => ' alt="Change or edit the current bot"',
@@ -352,9 +360,9 @@ function makeLeftLinks()
             '[linkClass]' => ' class="[curClass]"',
             '[linkHref]' => ' href="index.php?page=logs"',
             '[linkOnclick]' => '',
-            '[linkAlt]' => ' alt="View the log files"',
-            '[linkTitle]' => ' title="View the log files"',
-            '[linkLabel]' => 'Logs'
+            '[linkAlt]' => ' alt="View the Conversation Logs"',
+            '[linkTitle]' => ' title="View the Conversation Logs"',
+            '[linkLabel]' => 'Conversation Logs'
         ),
         array(
             '[linkClass]' => ' class="[curClass]"',
@@ -464,17 +472,17 @@ function makeLeftLinks()
             '[linkClass]' => '',
             '[linkHref]' => ' href="' . _BASE_URL_ . 'chatbot/debug/"',
             '[linkOnclick]' => ' target="_blank"',
-            '[linkAlt]' => ' alt="View the Debug Files"',
+            '[linkAlt]' => ' alt="Debug File Viewer"',
             '[linkTitle]' => ' title="View the debug files in a new tab/window"',
-            '[linkLabel]' => 'View the Debug Files'
+            '[linkLabel]' => 'Debug File Viewer'
         ),
         array(
             '[linkClass]' => '',
             '[linkHref]' => ' href="../logs/"',
             '[linkOnclick]' => ' target="_blank"',
-            '[linkAlt]' => ' alt="View the Logs"',
-            '[linkTitle]' => ' title="View the logs in a new tab/window"',
-            '[linkLabel]' => 'View the Logs'
+            '[linkAlt]' => ' alt="Log File Viewer"',
+            '[linkTitle]' => ' title="Log File Viewer in a new tab/window"',
+            '[linkLabel]' => 'Log File Viewer'
         ),
     );
     return $out;
@@ -484,6 +492,7 @@ function makeLeftLinks()
 /**
  * Function getCurrentVersion
  *
+ * @param $branch
  * @return bool|mixed|string
  */
 function getCurrentVersion($branch)
@@ -620,42 +629,3 @@ function getLoginStatus()
 {
     return (isset($_SESSION['poadmin']['logged_in']) && $_SESSION['poadmin']['logged_in'] === true) ? true : false;
 }
-
-/**
- * function compareVersions
- *
- * Compares the current Program O install's version to the version on GitHub
- * @param string $cv - The current Program O version
- * @param string $gv - The current GitHub version of Program O
- * @return int $out
- */
-function compareVersions($cv, $gv)
-{
-    //cv = current version, gv = github version
-    @list($cmv, $csv, $cb) = explode('.', $cv);
-    $cvTotal = $cmv + ($csv / 10) + ($cb / 100);
-
-    @list($gmv, $gsv, $gb) = explode('.', $gv);
-    $gvTotal = $gmv + ($gsv / 10) + ($gb / 100);
-
-    switch (true)
-    {
-        case ($cvTotal < $gvTotal):
-            $out = -1;
-            break;
-        case ($cvTotal == $gvTotal):
-            $out = 0;
-            break;
-        default:
-            $out = 1;
-    }
-
-    return $out;
-}
-
-
-
-
-
-
-

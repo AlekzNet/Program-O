@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: library/error_functions.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: MAY 17TH 2014
@@ -67,6 +67,7 @@ function myErrorHandler($errno, $errstr, $errfile, $errline)
 function runDebug($fileName, $functionName, $line, $info, $level = 0)
 {
     global $debugArr, $srai_iterations, $quickdebug, $writetotemp, $convoArr, $last_timestamp, $debug_level;
+    if ($debug_level === 0) return;
 
     $debug_level = (isset($convoArr['conversation']['debug_level'])) ? $convoArr['conversation']['debug_level'] : $debug_level;
 
@@ -117,7 +118,7 @@ function runDebug($fileName, $functionName, $line, $info, $level = 0)
 
         // if we are logging to file then build a log file. This will be overwriten if the program completes
         if ($writetotemp == 1) {
-            write_debug_to_file(implode(PHP_EOL, $debugArr), $convoArr);
+            write_debug_to_file(implode(PHP_EOL, $debugArr));
         }
     }
 }
@@ -126,8 +127,9 @@ function runDebug($fileName, $functionName, $line, $info, $level = 0)
  * function handleDebug()
  * Handle the debug array at the end of the process
  * @param  array $convoArr - conversation arrau
+ * @param $et
  * @return array $convoArr;
- **/
+ */
 function handleDebug($convoArr, $et)
 {
     global $debugArr, $debug_level, $debug_mode;
@@ -189,7 +191,7 @@ function handleDebug($convoArr, $et)
         case 1 :
             //write to log file
             $log = str_replace('[NEWLINE]', PHP_EOL, $log);
-            write_debug_to_file($log, $convoArr);
+            write_debug_to_file($log);
             break;
         case 2 :
             //show in webpage
@@ -242,7 +244,7 @@ function reduceConvoArr($convoArr)
     $showConvoArr['aiml']['score'] = (isset($convoArr['aiml']['score'])) ? $convoArr['aiml']['score'] : '';
     $showConvoArr['aiml']['aiml_id'] = (isset($convoArr['aiml']['aiml_id'])) ? $convoArr['aiml']['aiml_id'] : '';
     $showConvoArr['aiml']['parsed_template'] = (isset($convoArr['aiml']['parsed_template'])) ? $convoArr['aiml']['parsed_template'] : '';
-    $showConvoArr['user_say'][1] = (isset($convoArr['aiml']['parsed_template'])) ? $convoArr['user_say'][1] : '';
+    $showConvoArr['user_say'][1] = (isset($convoArr['user_say'][1])) ? $convoArr['user_say'][1] : '';
     $showConvoArr['that_raw'][1] = (isset($convoArr['that_raw'][1])) ? $convoArr['that_raw'][1] : '';
     $showConvoArr['parsed_template'][1] = (isset($convoArr['parsed_template'][1])) ? $convoArr['parsed_template'][1] : '';
 
@@ -401,7 +403,7 @@ function mem_tracer($file, $function, $line)
 
 function wildcard_handler($errNum, $errMsg, $errFile, $errLine, $errContext)
 {
-    $saveContent = "An error (Number $errNum, $errMsg) was caught in file $errFile, line $errLine. The following variableis what you are looking for:\n";
+    $saveContent = "An error (Number $errNum, $errMsg) was caught in file $errFile, line $errLine. The following variable is what you are looking for:\n";
     $saveContent .= print_r($errContext['aiml_pattern_wildcards'], true) . "\n---------------------------------------------------------------\n";
 
     save_file(_LOG_PATH_ . 'wildcard_errors.txt', $saveContent, true);

@@ -2,12 +2,46 @@
 
 ##CHANGELOG info:
 
-- Version: 2.6.3
+- Version: 2.6.5
 - Authors: Elizabeth Perreau and Dave Morton
-- Date: June 11th 2016
+- Date: March 30th 2017
 
 
 ##Version History:
+
+2.6.5   Major Bug Fix, New Option for Response Selection
+
+1. A rather glaring bug was discovered in the SQL query that collects all potential responses
+   that was leaving out certain AIML categories that could have been relevant. This has been
+   corrected.
+
+2. It has been suggested that the "winning" response be the first category found with the highest score,
+   rather than a random selection from all high scoring responses. It was also suggested that the most
+   recent (e.g. the last) response should be chosen, with newer AIML categories superseding older ones.
+   There are now three (3) defined constants in the config file that allow botmasters to determine for
+   themselves which response to choose when there are multiple versions with the same score.
+
+Given that this new version involves changes to the config file, an "overlay" install would be a good
+idea. It's not __VITAL__ to the operation of the chatbot, but using it without doing so will tend to
+generate some rather annoying error messages in the logs, so it's best to just re-run the install script
+with all of the same information.
+
+
+2.6.4   Reimplemented Custom Session Handling, Bug Fixes
+
+1. After months of researching, pulling hair out and banging heads against computer monitors,
+   we were finally able to work out a better implementation of custom session handling that is
+   both functional and secure. This time it should stick! __NOTE!__ This will require a "clean"
+   install of Program O, which is why we have a new version number.
+
+2. We also added in the option for botmasters to assign a file name other than 'admin_added.aiml'
+   to new AIML categories in the Teach page of the admin. The default is still 'admin_added.aiml',
+   but now it's not hard-coded in.
+
+3. The list of bugs fixed is too large to list here, but suffice it to say that most of the bugs
+   listed in the issues section in 2016 have been found and either killed or at least rendered
+   ineffective. There are still some things to address, but not as many as before.
+
 
 2.6.3   New Features!
 

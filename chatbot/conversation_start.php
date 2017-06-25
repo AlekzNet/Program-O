@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: chatbot/conversation_start.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -16,8 +16,8 @@ $script_start = $time_start;
 $last_timestamp = $time_start;
 $thisFile = __FILE__;
 
-/** @noinspection PhpIncludeInspection */
-require_once("../config/global_config.php");
+$configPath = (defined('_CONF_PATH_')) ? _CONF_PATH_ : '../config/';
+require_once("{$configPath}global_config.php");
 //load shared files
 /** @noinspection PhpIncludeInspection */
 require_once(_LIB_PATH_ . 'PDO_functions.php');
@@ -220,9 +220,9 @@ if (!empty($say)) {
     $convoArr['time_start'] = $time_start;
     $convoArr = load_bot_config($convoArr);
     //if totallines isn't set then this is new user
-    runDebug(__FILE__, __FUNCTION__, __LINE__, "Debug level = $debug_level", 0);
+    runDebug(__FILE__, __FUNCTION__, __LINE__, "Default debug level = $debug_level", 0);
     $debug_level = isset($convoArr['conversation']['debug_level']) ? $convoArr['conversation']['debug_level'] : $debug_level;
-    runDebug(__FILE__, __FUNCTION__, __LINE__, "Debug level = $debug_level", 0);
+    runDebug(__FILE__, __FUNCTION__, __LINE__, "Current debug level = $debug_level", 0);
     $convoArr['conversation']['rawSay'] = $rawSay;
 
     if (!isset ($convoArr['conversation']['totallines'])) {
@@ -271,4 +271,4 @@ display_conversation($convoArr);
 
 runDebug(__FILE__, __FUNCTION__, __LINE__, "Conversation Ending. Elapsed time: $time milliseconds.", 0);
 $convoArr = handleDebug($convoArr, $time); // Make sure this is the last line in the file, so that all debug entries are captured.
-//session_gc();
+pgo_session_gc();

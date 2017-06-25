@@ -3,7 +3,7 @@
 /***************************************
 * http://www.program-o.com
 * PROGRAM O
-* Version: 2.6.3
+* Version: 2.6.5
 * FILE: editSRAI.php
 * AUTHOR: Elizabeth Perreau and Dave Morton
 * DATE: 05-26-2014
@@ -215,7 +215,7 @@ function updateSRAI()
         }
 
         $fields = implode(', ', $fArray);
-        $msg = str_replace('[fields]', $fieelds, $msg);
+        $msg = str_replace('[fields]', $fields, $msg);
     }
     else
     {
@@ -303,26 +303,5 @@ function insertSRAI()
     }
 
     return $msg;
-}
-
-function clean_inputs($options = null)
-{
-    $formVars = array_merge($_GET, $_POST);
-
-    switch (true)
-    {
-        case (null === $options):
-            $out = filter_var_array($formVars);
-            break;
-        case (!is_array($options)):
-            if (!isset($formVars[$options])) return false;
-            $vars = filter_var_array($formVars);
-            $out = $vars[$options];
-            break;
-        default:
-            $out = filter_var_array($formVars, $options, false);
-    }
-    //file_put_contents(_LOG_PATH_ . "editSRAI.clean_inputs.formVars.txt", print_r($formVars, true) . "\n---------------\n", FILE_APPEND);
-    return $out;
 }
 

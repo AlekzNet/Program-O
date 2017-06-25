@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: spellcheck.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 12-09-2014
@@ -11,7 +11,6 @@
 $msg = '';
 $upperScripts = <<<endScript
 
-    <script type="text/javascript" src="scripts/tablesorter.js"></script>
     <script type="text/javascript">
 <!--
       var state = 'hidden';
@@ -54,7 +53,7 @@ if (!empty($sc_action))
             $content .= spellCheckForm();
             break;
         case 'update':
-            $x = updateSpell();
+            updateSpell();
             $content .= spellCheckForm();
             break;
         case 'delete':
@@ -118,7 +117,7 @@ function scPaginate()
     $sql = "SELECT COUNT(*) FROM `spellcheck` WHERE 1";
     $row = db_fetch($sql, null, __FILE__, __FUNCTION__, __LINE__);
 
-    $rowCount = $row['count(*)'];
+    $rowCount = $row['COUNT(*)'];
     $lastPage = intval($rowCount / 50);
     $remainder = ($rowCount / 50) - $lastPage;
 
@@ -320,8 +319,8 @@ function runSpellSearch()
     foreach ($result as $row)
     {
         $i++;
-        $misspell = strtoupper($row['missspelling']);
-        $correction = strtoupper($row['correction']);
+        $misspell = _strtoupper($row['missspelling']);
+        $correction = _strtoupper($row['correction']);
         $id = $row['id'];
         $group = round(($id / 50));
         $action = "<a href=\"index.php?page=spellcheck&amp;action=edit&amp;id=$id&amp;group=$group#$id\"><img src=\"images/edit.png\" border=0 width=\"15\" height=\"15\" alt=\"Edit this entry\" title=\"Edit this entry\" /></a>

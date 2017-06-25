@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: config/global_config.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -12,17 +12,9 @@
 // Paths - only set this manually if the below doesn't work
 //------------------------------------------------------------------------
 
-$currentFolder = __DIR__ . DIRECTORY_SEPARATOR;
-chdir($currentFolder);
-$parentFolder = str_replace(DIRECTORY_SEPARATOR . 'config', '', $currentFolder);
-$baseURL = 'http://' . $_SERVER['SERVER_NAME'] . $_SERVER['SCRIPT_NAME'];
-$docRoot = $_SERVER['DOCUMENT_ROOT'];
-define('_BASE_PATH_', $parentFolder);
 $path_separator = DIRECTORY_SEPARATOR;
-$temp = str_replace(_BASE_PATH_, '', $thisFile);
-$temp = str_replace($path_separator, '/', $temp);
-$baseURL = str_replace($temp, '', $baseURL);
-define('_BASE_URL_', $baseURL);
+$parentFolder = dirname(__DIR__) . $path_separator;
+define('_BASE_PATH_', $parentFolder);
 
 //------------------------------------------------------------------------
 // Define paths for include files
@@ -36,16 +28,19 @@ define('_CONF_PATH_',    _BASE_PATH_  . "config$path_separator");
 define('_LOG_PATH_',     _BASE_PATH_  . "logs$path_separator");
 define('_DEBUG_PATH_',   _BASE_PATH_  . "chatbot{$path_separator}debug$path_separator");
 define('_INSTALL_PATH_', _BASE_PATH_  . "install$path_separator");
-define('_CAPTCHA_PATH_', _ADMIN_PATH_ . "captcha-images$path_separator");
 define('_UPLOAD_PATH_',  _ADMIN_PATH_ . "uploads$path_separator");
 define('_DOWNLOAD_PATH_',  _ADMIN_PATH_ . "downloads$path_separator");
 define('IS_WINDOWS',     (DIRECTORY_SEPARATOR == '/') ? false : true);
-#define('_SESSION_PATH_', _ADMIN_PATH_ . '[session_dir]' . $path_separator);
-# The above line is commented out till I can come up with a better implementation of session handling
+define('_SESSION_PATH_', _ADMIN_PATH_ . '[session_dir]' . $path_separator);
 
 //------------------------------------------------------------------------
 // Define URL paths
 //------------------------------------------------------------------------
+
+$doc_root = $_SERVER['DOCUMENT_ROOT'];
+$bu = str_replace($path_separator, '/', _BASE_PATH_);
+$baseURL = str_replace($doc_root, '', $bu);
+define ('_BASE_URL_', $baseURL);
 
 define('_ADMIN_URL_',   _BASE_URL_ . 'admin/');
 define('_LIB_URL_',     _BASE_URL_ . 'library/');
@@ -100,6 +95,26 @@ $adm_dbp    = '[adm_dbp]';
 // the actual parent bot is set later on in program o there is no need to edit this value
 //------------------------------------------------------------------------
 $bot_parent_id = 1;
+
+//------------------------------------------------------------------------
+// Define some bot option constants
+//------------------------------------------------------------------------
+
+/*
+     It has been suggested that the "winning" response be the first category found with the highest score,
+     rather than a random selection from all high scoring responses. It was also suggested that the most
+     recent (e.g. the last) response should be chosen, with newer AIML categories superseding older ones.
+     At some point this will be an option that will be placed in the admin pages on a per-bot basis, but
+     for now it's just a random pick. That said, however, I'm going to start adding code for the other
+     two options now. Feel free to change the value of $which_response to one of the three constants
+     defined here.
+*/
+
+define('BOT_USE_RANDOM_RESPONSE', 0);
+define('BOT_USE_FIRST_RESPONSE', 1);
+define('BOT_USE_LAST_RESPONSE', 2);
+
+$which_response = BOT_USE_RANDOM_RESPONSE;
 
 
 //Used to populate the stack when first initialized

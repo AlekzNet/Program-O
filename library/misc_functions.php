@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: misc_functions.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 05-22-2013
@@ -28,14 +28,14 @@ function get_cURL($url, $options = array(), $params = array())
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        if (is_array($options) and count($options) > 0)
+        if (is_array($options) && count($options) > 0)
         {
             foreach ($options as $key => $value) {
                 curl_setopt($ch, $key, $value);
             }
         }
 
-        if (is_array($params) and count($params) > 0)
+        if (is_array($params) && count($params) > 0)
         {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
@@ -101,7 +101,6 @@ function _title_case($text)
  * @param string $start
  * @param string $len
  * @param string $encoding
- *
  * @return string
  */
 function _substr($text, $start, $len = null, $encoding = null)
@@ -117,9 +116,9 @@ function _substr($text, $start, $len = null, $encoding = null)
  * function normalize_text
  * Transforms text to uppercase, removes all punctuation, and strips extra whitespace
  *
- * @param (string) $text - The text to perform the transformations on
- * @param (bool) $convert_case - Flag for converting text to uppercase. Default = true
- * @return (string) $normalized_text - The completely transformed text
+ * @param string $text - The text to perform the transformations on
+ * @param bool $convert_case - Flag for converting text to uppercase. Default = true
+ * @return string $normalized_text - The completely transformed text
  */
 function normalize_text($text, $convert_case = true)
 {
@@ -179,27 +178,26 @@ endFooter;
     return $out;
 }
 
-  /*
-   * function session_gc
-   * Performs garbage collection on expired session files
-   *
-   * @return void
-   */
 /*
-  This function is temporarily disabled until I can devise a better implementation of session handling
-function session_gc()
-  {
-    return false;
+ * function pgo_session_gc
+ * Performs garbage collection on expired session files
+ * @return void
+ */
 
+
+  function pgo_session_gc()
+  {
     global $session_lifetime;
     $session_files = glob(_SESSION_PATH_ . 'sess_*');
+    clearstatcache();
     foreach($session_files as $file)
     {
-      $lastAccessed = filemtime($file);
-      if ($lastAccessed < (time() - $session_lifetime)) unlink($file);
+        $gcRand = mt_rand(0,10000); // random number from 0 to 10,000
+        $lastAccessed = fileatime($file);
+        if ($gcRand >= 10 && $lastAccessed < (time() - $session_lifetime)) unlink($file);
     }
   }
-*/
+
 /**
  * function addUnknownInput
  * Adds previously unknown inputs to the database for later examination, and possible creation of new AIML categories
@@ -217,7 +215,7 @@ function addUnknownInput($convoArr, $input, $bot_id, $user_id)
     $default_aiml_pattern = get_convo_var($convoArr, 'conversation', 'default_aiml_pattern');
 
     if ($input == $default_aiml_pattern) {
-        return false;
+        return;
     }
 
     /** @noinspection SqlDialectInspection */
@@ -250,3 +248,27 @@ function pretty_print_r($var)
     }
     return trim($out, ",\n");
 }
+
+function clean_inputs($options = null)
+{
+    $referer = (isset($_SERVER['HTTP_REFERER'])) ? $_SERVER['HTTP_REFERER'] : false;
+    $host = (isset($_SERVER['HTTP_HOST'])) ? $_SERVER['HTTP_HOST'] : false;
+    if (false === $host || false === $referer) die ('CSRF failure!');
+    $formVars = array_merge($_GET, $_POST);
+
+    switch (true)
+    {
+        case (null === $options):
+            $out = filter_var_array($formVars);
+            break;
+        case (!is_array($options)):
+            if (!isset($formVars[$options])) return false;
+            $vars = filter_var_array($formVars);
+            $out = $vars[$options];
+            break;
+        default:
+            $out = filter_var_array($formVars, $options, false);
+    }
+    return $out;
+}
+

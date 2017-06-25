@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: file.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 05-11-2013
@@ -53,5 +53,5 @@ else
     exit;
 }
 
-// UNREACHABLE STATEMENT
+/** @noinspection PhpUnreachableStatementInspection */
 header("Location: $pageBack");

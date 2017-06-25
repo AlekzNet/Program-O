@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: index.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -221,7 +221,7 @@ function jq_get_convo_id()
             $('#chatlog').html($('#chatlog').html() + userSaid);
             var botSaid = botTitle + bot_name + endSpan;
             var formdata = $("#talkform").serialize();
-            $('#say').val('')
+            $('#say').val('');
             $('#say').focus();
             $.post('<?php echo $url ?>', formdata, function (data) {
                 var b = data.botsay;

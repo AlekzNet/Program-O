@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.3
+ * Version: 2.6.5
  * FILE: index.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 02-15-2013
@@ -71,9 +71,9 @@ if (isset($post_vars['name']))
 
     if ($row !== false)
     {
-        $verify = $row['password'];
+        $verify = (string) $row['password']; // cast the result as a string, just to make sure the comparison is properly made, later.
 
-        if ($pass == $verify)
+        if ($pass === $verify)
         {
             $_SESSION['isLoggedIn'] = true;
             header('Location: ' . _DEBUG_URL_);
@@ -104,6 +104,7 @@ else
     $now_playing = ($iframeURL == 'about:blank') ? 'Viewer is empty' : "<strong>Viewing Debug File: $iframeURL</strong>";
     $optionTemplate = '            <option[fileSelected] value="[file]">[file]</option>' . "\n";
     $fileList = glob(_DEBUG_PATH_ . '*.txt');
+    if (empty($fileList)) $sel_msg = 'No Logs to View';
 
     usort(
         $fileList,
@@ -201,8 +202,7 @@ else
     function loadDebug() {
         var url = document.getElementById('fn').value;
         var npTmpl = 'Viewing file [file]';
-        var npText = npTmpl.replace('[file]', url);
-        now_playing.innerHTML = npText;
+        now_playing.innerHTML = npTmpl.replace('[file]', url);
         //fileViewer.src = url;
         fileViewer.location.replace(url);
         lnkProfile.style.display = 'inline';
@@ -212,8 +212,7 @@ else
         var filename = document.getElementById('fn').value;
         var url = 'profile.php?file=' + filename;
         var npTmpl = 'Viewing profile for file [file]';
-        var npText = npTmpl.replace('[file]', filename);
-        now_playing.innerHTML = npText;
+        now_playing.innerHTML = npTmpl.replace('[file]', filename);
         //fileViewer.src = url;
         fileViewer.location.replace(url);
         lnkProfile.style.display = 'none';

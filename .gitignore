@@ -14,16 +14,14 @@ admin/editAIML.htm
 config/global_config.php
 config/global_config*.php
 global_config.php
-!admin/uploads
-admin/uploads/*
-!admin/uploads/index.html
 chatbot/debug/*.txt
+library/reference/*.txt
 logs/*.log
 logs/*.txt
 backups
 backups/*
-admin/scripts/old
 patch.php
+DOM_ProofOfConcept
 
 #################
 ## WeBuilder/ Rapid PHP
