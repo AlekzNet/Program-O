@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: logs.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 12-12-2014
@@ -19,11 +19,12 @@
     ini_set('error_log', _LOG_PATH_ . 'logs_php.error.log');
     ini_set('html_errors', false);
     ini_set('display_errors', false);
-    if (!isset($dbConn)) $dbConn = db_open();
-
-    $session_name = 'PGO_Admin';
-    session_name($session_name);
-    session_start();
+    if (session_id() == '')
+    {
+        $session_name = 'PGO_Admin';
+        session_name($session_name);
+        session_start();
+    }
 
     $allowed_get_vars = array(
     // Make sure to put at least something in here, like this:
@@ -84,7 +85,7 @@ function getUserNames()
 
     /** @noinspection SqlDialectInspection */
     $sql = "SELECT `id`, `user_name` FROM `users` WHERE 1 order by `id`;";
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $result = db_fetchAll($sql,null, __FILE__, __FUNCTION__, __LINE__);
     foreach ($result as $row) {
         $nameList[$row['id']] = $row['user_name'];
     }
@@ -135,8 +136,9 @@ function getUserList($bot_id, $showing)
             $ts = '0';
             break;
         case 'last 20':
-            /** @noinspection SqlDialectInspection */
-            $sql = "SELECT DISTINCT(`user_id`),COUNT(`user_id`) AS TOT FROM `conversation_log`  WHERE  bot_id = :bot_id GROUP BY `user_id` ORDER BY ABS(`user_id`) ASC limit 20;";
+            $sql = "SELECT DISTINCT(`user_id`),COUNT(`user_id`) AS TOT FROM `conversation_log`  WHERE  bot_id = '$bot_id' GROUP BY `user_id` ORDER BY ABS(`user_id`) ASC limit 20;";
+            //$repl_date = time();
+            $repl_date = false;
             break;
         default :
             /** @noinspection SqlDialectInspection */
@@ -150,13 +152,13 @@ function getUserList($bot_id, $showing)
         ':bot_id' => $bot_id,
     );
     $debugSQL = db_parseSQL($sql, $params);
-    save_file(_LOG_PATH_ . __FUNCTION__ . '.sql.txt', $debugSQL);
+    //save_file(_LOG_PATH_ . __FUNCTION__ . '.sql.txt', $debugSQL);
     $rows = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
     $numRows = count($rows);
 
     if ($numRows == 0 || false === $rows)
     {
-        $list .= '          <li>No log entries found</li>';
+        $list .= '          <li>No chat log entries found</li>';
     }
 
     else {
@@ -238,7 +240,7 @@ function getuserConvo($id, $showing)
     $ts = '';
     $ats = '';
     /** @noinspection SqlDialectInspection */
-    $sql = 'SELECT *  FROM `conversation_log` WHERE `bot_id` = :bot_id AND `user_id` = :user_id  AND DATE(`timestamp`) >= [ts] ORDER BY `id` DESC;';
+    $sql = 'SELECT *  FROM `conversation_log` WHERE `bot_id` = :bot_id AND `user_id` = :user_id  AND DATE(`timestamp`) >= [ts] ORDER BY `id` ASC;';
 
     switch ($showing)
     {
@@ -268,12 +270,12 @@ function getuserConvo($id, $showing)
             break;
         case 'last 20':
             /** @noinspection SqlDialectInspection */
-            $sql = 'SELECT *  FROM `conversation_log` WHERE `bot_id` = :bot_id AND `user_id` = :user_id ORDER BY `id` DESC limit 20;';
+            $sql = 'SELECT *  FROM `conversation_log` WHERE `bot_id` = :bot_id AND `user_id` = :user_id ORDER BY `id` ASC limit 20;';
             $title = "Last 20 Conversation entries for user: $user_name (ID #{$id})";
             $ats = '0 limit 20';
             break;
         case 'all time' :
-            $sql = 'SELECT *  FROM `conversation_log` WHERE `bot_id` = :bot_id AND `user_id` = :user_id ORDER BY `id` DESC;';
+            $sql = 'SELECT *  FROM `conversation_log` WHERE `bot_id` = :bot_id AND `user_id` = :user_id ORDER BY `id` ASC;';
             $title = "All conversations for user: $user_name (ID #{$id})";
             $ats = 'foo';
             break;
@@ -294,7 +296,7 @@ endLink;
     $list = "<hr><br/><h4>{$title}:</h4>";
     $list .= '<div class="convolist">';
     $debugSQL = db_parseSQL($sql, $params);
-    save_file(_LOG_PATH_ . __FUNCTION__ . '.sql.txt', $debugSQL);
+    //save_file(_LOG_PATH_ . __FUNCTION__ . '.sql.txt', $debugSQL);
 
     $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
     $storedRows = array();
@@ -348,7 +350,7 @@ function clearLogs()
     $idRegEx =implode(' OR `id` = ', $storedRows[$sr]);
     list($bot_id, $user_id, $timestamp) = explode('_', $sr);
     $sql = "DELETE from `conversation_log` where id = $idRegEx;";
-    save_file(_LOG_PATH_ . 'clearLogs.sql.txt', $sql);
+    //save_file(_LOG_PATH_ . 'clearLogs.sql.txt', $sql);
     $numRows = db_write($sql);
     If ($numRows > 0)
     {

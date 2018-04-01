@@ -1,7 +1,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: editAiml.js
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 05-11-2013
@@ -11,6 +11,12 @@ var draw = 1;
 var group = 1;
 var scrollY;
 var table;
+
+function getVhByScript(){
+    vhSmall = '51vh';
+    vhLarge = '63vh';
+}
+
 $(function () {
     $('#showHelp').hide();
     $('#AIML').on('click', '.editable textarea', function (e) {
@@ -48,13 +54,13 @@ $(function () {
     table = buildTable();
     $(window).on('resize', function () {
         if (typeof table === 'undefined') table = buildTable();
-        scrollY = changeHeight();
         $('.holder').height(scrollY);
         table.draw(false);
     });
     $('.search-input-text').on('keyup click', function () {
         var i = $(this).data('column');
         var v = $(this).val();
+        console.info('searching for', v);
         table.columns(i).search(v).draw(false);
     });
     $('#addNewCat').on('submit', function (e) {
@@ -106,6 +112,7 @@ function saveEdit(ele) {
     var template = row.find('.template').text();
     var topic = row.find('.topic').text();
     var filename = row.find('.filename').text();
+    console.log('pattern =', pattern, 'thatpattern =', thatpattern, 'template =', template, 'topic =', topic, 'filename =', filename);
     // Now gether all of the fields and send the updated information
     $.ajax({
         url: 'editAJAX.php',
@@ -171,20 +178,18 @@ function deleteRow(ele) {
     });
 }
 
-function changeHeight() {
-    return $(window).height() * 0.4;
-}
-
 function buildTable() {
-    scrollY = changeHeight();
+    var scrollY = (logoStatus === 'Show') ? vhSmall : vhLarge;
     var table = $('#AIML').DataTable({
         processing: true,
         serverSide: true,
         paging: true,
+        lengthMenu: [10,25,50,100,1000],
         scrollX: true,
         scrollY: scrollY,
         //scrollCollapse: true,
         autoWidth: false,
+        bAutoWidth: false,
         order: [1, 'asc'],
         ajax: 'editAJAX.php',
         columns: [
@@ -192,7 +197,7 @@ function buildTable() {
                 data: 'id',
                 searchable: true,
                 orderable: true,
-                width: '15%',
+                width: '50px',
                 render: function (data, type, full, meta) {
                     return 'ID: ' + data + '<br><div class="deleteRow" onclick="deleteRow($(this))" title="Delete this row"><br>Delete</div>';
                 }

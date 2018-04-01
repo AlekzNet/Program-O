@@ -2,13 +2,14 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: download.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 12-08-2014
  * DETAILS: Provides the ability to download a chatbot's AIML filesm either in AIML or SQL format.
  ***************************************/
 
+set_time_limit(0);
 $content = '';
 $status = '';
 //assume ZipArchive is enabled by default
@@ -22,23 +23,25 @@ $bot_id = ($bot_id == 'new') ? 0 : $bot_id;
 $referer = filter_input(INPUT_SERVER, 'HTTP_REFERER', FILTER_SANITIZE_URL);
 $upperScripts = $template->getSection('UpperScripts');
 
-$post_vars = filter_input_array(INPUT_POST);
-$get_vars = filter_input_array(INPUT_GET);
+$allowed_get_vars = $allowed_pages['download'];
+$form_vars = clean_inputs($allowed_get_vars);
 
-if (isset($post_vars))
+//trigger_error('Test error: form vars =' . print_r($form_vars, true), E_USER_NOTICE);
+
+if (!empty($form_vars['type']) && !empty($form_vars['filenames']))
 {
-    $type = $post_vars['type'];
+    $type = $form_vars['type'];
 
     /** @noinspection PhpUndefinedVariableInspection */
     $zipFilename = "$bot_name.$type.zip";
 
-    if (!isset($post_vars['filenames']))
+    if (!isset($form_vars['filenames']))
     {
         $msg .= 'No files were selected for download. Please select at least one file.';
     }
     else
     {
-        $fileNames = $post_vars['filenames'];
+        $fileNames = $form_vars['filenames'];
 
         if($ZIPenabled)
         {
@@ -53,7 +56,7 @@ if (isset($post_vars))
                 {
                     $curZipContent = ($type == 'SQL') ? getSQLByFileName($filename) : getAIMLByFileName($filename);
                     $filename = ($type == 'SQL') ? str_replace('.aiml', '.sql', $filename) : $filename;
-                    $zip->addFromString($filename, $curZipContent);
+                    $zip->addFromString("{$bot_name}.{$filename}", $curZipContent);
                 }
 
                 $zip->close();
@@ -120,17 +123,14 @@ function getAIMLByFileName($filename)
         return "You need to select a file to download.";
     }
 
-    global $dbn, $botmaster_name, $charset, $dbConn;
+    global $botmaster_name, $charset, $bot_id;
 
-    $bmnLen = strlen($botmaster_name) - 2;
-    $bmnSearch = str_pad('[bm_name]', $bmnLen);
+    $bmnLen = 51 - strlen($botmaster_name);
+    $bmnPadding = str_pad('', $bmnLen);
     $categoryTemplate = '<category><pattern>[pattern]</pattern>[that]<template>[template]</template></category>';
 
     $cleanedFilename = $filename;
-    $fileNameSearch = '[fileName]';
-    $cfnLen = strlen($cleanedFilename);
 
-    $fileNameSearch = str_pad($fileNameSearch, $cfnLen);
     $topicArray = array();
     $curPath = dirname(__FILE__);
     chdir($curPath);
@@ -138,18 +138,28 @@ function getAIMLByFileName($filename)
     $fileContent = file_get_contents(_ADMIN_PATH_ . 'AIML_Header.dat');
     $fileContent = str_replace('[year]', date('Y'), $fileContent);
     $fileContent = str_replace('[charset]', $charset, $fileContent);
-    $fileContent = str_replace($bmnSearch, $botmaster_name, $fileContent);
+    $fileContent = str_replace('[bm_name]', $botmaster_name . $bmnPadding, $fileContent);
+
+    $pad_len = 60 - strlen($cleanedFilename);
+//  NOTE: the value 60 in the previous line is the number of characters from the `[` to the first '-'
+//  in the comment that contains the filename. This makes the comment the same width as the others
+//  in the AIML file.
+    $space_padding = str_pad('', $pad_len, ' ');
+    $fileContent = str_replace('[fileName]', $cleanedFilename . $space_padding, $fileContent);
 
     $curDate = date('m-d-Y', time());
     $cdLen = strlen($curDate);
     $curDateSearch = str_pad('[curDate]', $cdLen);
 
     $fileContent = str_replace($curDateSearch, $curDate, $fileContent);
-    $fileContent = str_replace($fileNameSearch, $cleanedFilename, $fileContent);
 
     /** @noinspection SqlDialectInspection */
-    $sql = "SELECT DISTINCT topic FROM aiml WHERE filename LIKE '$cleanedFilename';";
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $sql = "SELECT DISTINCT topic FROM aiml WHERE filename LIKE :cleanedFilename and bot_id = :bot_id;";
+        $params = array(
+            ':cleanedFilename' => $cleanedFilename,
+            ':bot_id' => $bot_id
+        );
+    $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
     foreach ($result as $row)
     {
@@ -164,8 +174,13 @@ function getAIMLByFileName($filename)
         }
 
         /** @noinspection SqlDialectInspection */
-        $sql = "SELECT pattern, thatpattern, template FROM aiml WHERE topic LIKE '$topic' AND filename LIKE '$cleanedFilename';";
-        $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+        $sql = "SELECT pattern, thatpattern, template FROM aiml WHERE topic LIKE :topic AND filename LIKE :cleanedFilename and bot_id = :bot_id;";
+        $params = array(
+            ':topic' => $topic,
+            ':cleanedFilename' => $cleanedFilename,
+            ':bot_id' => $bot_id
+        );
+        $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
         foreach ($result as $row)
         {
@@ -213,7 +228,7 @@ function getAIMLByFileName($filename)
  */
 function getSQLByFileName($filename)
 {
-    global $dbn, $botmaster_name, $dbh, $dbConn;
+    global $dbn, $botmaster_name, $dbh, $bot_id;
 
     $curPath = dirname(__FILE__);
     chdir($curPath);
@@ -225,7 +240,8 @@ function getSQLByFileName($filename)
     $topicArray = array();
 
     /** @noinspection SqlDialectInspection */
-    $sql = "SELECT * FROM aiml WHERE filename LIKE '$cleanedFilename' ORDER BY id ASC;";
+    $sql = "SELECT * FROM aiml WHERE filename LIKE ':cleanedFilename' and bot_id = :bot_id ORDER BY id ASC;";
+    $params = array(':cleanedFilename' => $cleanedFilename, ':bot_id' => $bot_id);
     $fileContent = file_get_contents('SQL_Header.dat');
 
     $fileContent = str_replace('[botmaster_name]', $botmaster_name, $fileContent);
@@ -239,7 +255,7 @@ function getSQLByFileName($filename)
     $fileContent = str_replace('[curDate]', $curDate, $fileContent);
     $fileContent = str_replace('[fileName]', $cleanedFilename, $fileContent);
 
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
     foreach ($result as $row)
     {
@@ -278,8 +294,9 @@ function getCheckboxes()
     global $bot_id, $bot_name, $msg;
 
     /** @noinspection SqlDialectInspection */
-    $sql = "SELECT DISTINCT filename FROM `aiml` WHERE `bot_id` = $bot_id ORDER BY `filename`;";
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $sql = "SELECT DISTINCT filename FROM `aiml` WHERE `bot_id` = :bot_id ORDER BY `filename`;";
+    $params = array(':bot_id' => $bot_id);
+    $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
     if (count($result) == 0)
     {

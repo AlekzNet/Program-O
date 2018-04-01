@@ -2,7 +2,7 @@
 /***************************************
 * http://www.program-o.com
 * PROGRAM O
-* Version: 2.6.7
+* Version: 2.6.*
 * FILE: index.php
 * AUTHOR: Elizabeth Perreau and Dave Morton
 * DATE: 02-13-2013
@@ -12,7 +12,8 @@
 if (!file_exists('config/global_config.php'))
 {
     # No config exists we will run install
-    header('Location: install/install_programo.php');
+    //header('Location: install/install_programo.php');
+    exit('Program O exists, but is not installed. <a href="install/install_programo.php">Install Program O</a>');
 }
 else
 {
@@ -32,14 +33,14 @@ else
 
     /** @noinspection PhpUndefinedVariableInspection */
     $format = (isset($get_vars['format'])) ? $get_vars['format'] : $format;
-    $format = _strtoupper($format);
+    $format = _strtolower($format);
 
     switch ($format)
     {
-        case 'JSON':
+        case 'json':
             $gui = 'jquery';
             break;
-        case 'XML':
+        case 'xml':
             $gui= 'xml';
             break;
         default:

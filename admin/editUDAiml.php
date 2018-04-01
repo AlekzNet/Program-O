@@ -3,7 +3,7 @@
 /* * *************************************
 * http://www.program-o.com
 * PROGRAM O
-* Version: 2.6.7
+* Version: 2.6.*
 * FILE: editUDAiml.php
 * AUTHOR: Elizabeth Perreau and Dave Morton
 * DATE: 05-26-2014
@@ -27,4 +27,7 @@ $pageTitle = 'My-Program O - Search/Edit User Defined AIML';
 $mainTitle = 'Search/Edit AIML' . $template->getSection('HelpLink');
 $showHelp = $template->getSection('editAIMLShowHelp');
 $mainContent = str_replace('[showHelp]', $showHelp, $mainContent);
+$editScriptTemplate = '<script type="text/javascript" src="scripts/[editScript].js"></script>';
+$editScript = 'editUDAiml';
+$editScriptTag = str_replace('[editScript]', $editScript, $editScriptTemplate);
 

@@ -2,7 +2,7 @@
 /***************************************
  * www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: chatbot/core/user/handle_user.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -37,13 +37,14 @@ function load_new_client_defaults($convoArr)
 function get_user_id($convoArr)
 {
     //db globals
-    global $dbConn, $dbn, $unknown_user;
+    global $dbn, $unknown_user;
     runDebug(__FILE__, __FUNCTION__, __LINE__, 'Getting user ID.', 2);
 
     //get undefined defaults from the db
     /** @noinspection SqlDialectInspection */
-    $sql = "SELECT * FROM `$dbn`.`users` WHERE `session_id` = '" . $convoArr['conversation']['convo_id'] . "' limit 1";
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $sql = 'SELECT * FROM `$dbn`.`users` WHERE `session_id` = :convo_id limit 1;';
+    $params = array(':convo_id' => $convoArr['conversation']['convo_id']);
+    $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
     $count = count($result);
 
     if ($count > 0)
@@ -80,7 +81,7 @@ function intisaliseUser($convoArr)
 {
     runDebug(__FILE__, __FUNCTION__, __LINE__, 'Initializing user.', 2);
     //db globals
-    global $dbConn, $dbn, $bot_id, $unknown_user;
+    global $bot_id, $unknown_user;
     $convo_id = $convoArr['conversation']['convo_id'];
     $username = !empty($convoArr['conversation']['user_name']) ? $convoArr['conversation']['user_name'] : $unknown_user;
     $sr = "";
@@ -119,8 +120,6 @@ endSQL;
 
     $debugSQL = db_parseSQL($sql, $params);
 
-    //$sth = $dbConn->prepare($sql);
-    //$sth->execute();
     $numRows = db_write($sql, $params);
 
     $user_id = db_lastInsertId();
@@ -139,8 +138,6 @@ endSQL;
         ':bot_id'   => $bot_id,
         ':username' => $username,
     );
-    //$sth = $dbConn->prepare($sql);
-    //$sth->execute();
     $numRows = db_write($sql, $params);
 
 

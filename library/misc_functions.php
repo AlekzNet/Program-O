@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: misc_functions.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 05-22-2013
@@ -210,7 +210,7 @@ endFooter;
 
 function addUnknownInput($convoArr, $input, $bot_id, $user_id)
 {
-    global $dbConn, $dbn;
+    global $dbn;
 
     $default_aiml_pattern = _strtolower(get_convo_var($convoArr, 'conversation', 'default_aiml_pattern'));
     $lcInput = _strtolower($input);
@@ -239,39 +239,52 @@ function addUnknownInput($convoArr, $input, $bot_id, $user_id)
  * @return string $out
  */
 
-function pretty_print_r($var)
+function pretty_print_r($var, $returnString = false)
 {
     switch (true)
     {
         case (is_array($var)):
-            $out = implode_recursive(",\n", $var, __FILE__, __FUNCTION__, __LINE__);
+            //$out = implode_recursive(",\n", $var, __FILE__, __FUNCTION__, __LINE__);
+            $out = '';
+            foreach ($var as $key => $value)
+            {
+                $message = (is_array($value)) ? print_r($value, true) : $value;
+                $out .= "[{$key}]\n{$message}\n--------------------------------------\n";
+            }
             break;
         default:
             $out = $var;
     }
-    return trim($out, ",\n");
+    switch ($returnString)
+    {
+        case true: return trim($out);
+    }
+    echo trim($out);
 }
 
-function clean_inputs($options = null)
+function pretty_print_XML($element)
 {
-    $referer = (isset($_SERVER['HTTP_REFERER'])) ? $_SERVER['HTTP_REFERER'] : false;
-    $host = (isset($_SERVER['HTTP_HOST'])) ? $_SERVER['HTTP_HOST'] : false;
-    if (false === $host || (false === $referer && 'localhost' !== $host)) die ('CSRF failure!');
-    $formVars = array_merge($_GET, $_POST);
+        $dom = dom_import_simplexml($element);
+        $dom = new DOMDocument("1.0");
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        $dom->loadXML($element->asXML());
+        return $dom->saveXML();
+}
 
-    switch (true)
+function clean_inputs($allowed_vars = null)
+{
+    $formVars = array();
+    if (!empty($allowed_vars))
     {
-        case (null === $options):
-            $out = filter_var_array($formVars);
-            break;
-        case (!is_array($options)):
-            if (!isset($formVars[$options])) return false;
-            $vars = filter_var_array($formVars);
-            $out = $vars[$options];
-            break;
-        default:
-            $out = filter_var_array($formVars, $options, false);
+        foreach ($allowed_vars as $key => $value){
+            if (!isset($_REQUEST[$key])) continue;
+            $curVar = $_REQUEST[$key];
+            $val = (is_array($curVar))? filter_var_array($curVar, $value) : filter_var(trim($curVar), $value);
+            $formVars[$key] = $val;
+        }
+        $out = $formVars;
     }
+    else $out = filter_var_array($_REQUEST);
     return $out;
 }
-

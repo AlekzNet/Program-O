@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.4
+ * Version: 2.6.*
  * FILE: unknown_inputs.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 12-12-2014
@@ -60,12 +60,11 @@ $mainContent = str_replace('[bot_name]', $bot_name, $mainContent);
  */
 function getUserNames()
 {
-    global $dbConn;
     $nameList = array();
 
     /** @noinspection SqlDialectInspection */
     $sql = "SELECT `id`, `user_name` FROM `users` WHERE 1 order by `id`;";
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $result = db_fetchAll($sql,null, __FILE__, __FUNCTION__, __LINE__);
     foreach ($result as $row) {
         $nameList[$row['id']] = $row['user_name'];
     }
@@ -82,7 +81,7 @@ function getUserNames()
 function getUserList($bot_id, $showing)
 {
     //db globals
-    global $template, $get_vars, $dbConn;
+    global $template, $get_vars;
 
     $nameList = getUserNames();
     $curUserid = (isset ($get_vars['id'])) ? $get_vars['id'] : -1;
@@ -149,7 +148,7 @@ function getUserList($bot_id, $showing)
 
     if ($numRows == 0 || false === $rows)
     {
-        $list .= '          <li>No log entries found</li>';
+        $list .= '          <li>No unknown inputs logged</li>';
     }
 
     else {
@@ -223,8 +222,6 @@ endForm;
  */
 function get_unknown_inputs($id)
 {
-    global $dbConn;
-
     $bot_name = (isset ($_SESSION['poadmin']['bot_name'])) ? $_SESSION['poadmin']['bot_name'] : 'Bot';
     $bot_id = (isset ($_SESSION['poadmin']['bot_id'])) ? $_SESSION['poadmin']['bot_id'] : 0;
     $nameList = getUserNames();

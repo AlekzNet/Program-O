@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: index.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 02-15-2013
@@ -28,7 +28,7 @@ else
     /** @noinspection PhpIncludeInspection */
     require_once(_LIB_PATH_ . 'PDO_functions.php');
     /** @noinspection PhpIncludeInspection */
-    include_once(_LIB_PATH_ . "error_functions.php");
+    require_once(_LIB_PATH_ . "error_functions.php");
 
     ini_set('error_log', _LOG_PATH_ . 'debug.reader.error.log');
 }
@@ -61,13 +61,11 @@ if (isset($post_vars['name']))
 {
     $name = $post_vars['name'];
     $pass = md5($post_vars['pass']);
-    $dbConn = db_open();
 
     /** @noinspection SqlDialectInspection */
-    $sql = "SELECT `password` FROM `myprogramo` WHERE `user_name` = '$name' limit 1;";
-    $sth = $dbConn->prepare($sql);
-    $sth->execute();
-    $row = $sth->fetch();
+    $sql = 'SELECT `password` FROM `myprogramo` WHERE `user_name` = :name limit 1;';
+    $params = array(':name' => $name);
+    $row = db_fetch($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
     if ($row !== false)
     {
@@ -104,7 +102,7 @@ else
     $now_playing = ($iframeURL == 'about:blank') ? 'Viewer is empty' : "<strong>Viewing Debug File: $iframeURL</strong>";
     $optionTemplate = '            <option[fileSelected] value="[file]">[file]</option>' . "\n";
     $fileList = glob(_DEBUG_PATH_ . '*.txt');
-    if (empty($fileList)) $sel_msg = 'No Logs to View';
+    if (empty($fileList)) $sel_msg = 'No Debug Files to View';
 
     usort(
         $fileList,

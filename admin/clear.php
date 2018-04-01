@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: clear.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 12-12-2014
@@ -42,6 +42,7 @@ $showHelp = $template->getSection('ClearShowHelp');
 $mainTitle = str_replace('[helpLink]', $template->getSection('HelpLink'), $mainTitle);
 $mainContent = str_replace('[showHelp]', $showHelp, $mainContent);
 $mainContent = str_replace('[upperScripts]', $upperScripts, $mainContent);
+$mainContent = str_replace('[bot_name]', $bot_name, $mainContent);
 
 /**
  * Function clearAIML
@@ -51,10 +52,11 @@ $mainContent = str_replace('[upperScripts]', $upperScripts, $mainContent);
  */
 function clearAIML()
 {
-    global $dbn, $bot_id, $bot_name, $dbConn;
+    global $bot_id, $bot_name;
     /** @noinspection SqlDialectInspection */
-    $sql = "DELETE FROM `aiml` WHERE `bot_id` = $bot_id;";
-    $affectedRows = db_write($sql, null, false, __FILE__, __FUNCTION__, __LINE__);
+    $sql = "DELETE FROM `aiml` WHERE `bot_id` = :bot_id;";
+    $params = array(':bot_id' => $bot_id);
+    $affectedRows = db_write($sql, $params, false, __FILE__, __FUNCTION__, __LINE__);
     $msg = "<strong>All AIML categories cleared for $bot_name!</strong><br />";
 
     return $msg;
@@ -68,10 +70,14 @@ function clearAIML()
  */
 function clearAIMLByFileName($filename)
 {
-    global $dbn, $bot_id, $dbConn;
+    global $bot_id;
     /** @noinspection SqlDialectInspection */
-    $sql = "DELETE FROM `aiml` WHERE `filename` LIKE '$filename' AND `bot_id` = $bot_id;";
-    $affectedRows = db_write($sql, null, false, __FILE__, __FUNCTION__, __LINE__);
+    $sql = "DELETE FROM `aiml` WHERE `filename` LIKE :filename AND `bot_id` = :bot_id;";
+    $params = array(
+    ':bot_id' => $bot_id,
+    ':filename' => $filename,
+    );
+    $affectedRows = db_write($sql, $params, false, __FILE__, __FUNCTION__, __LINE__);
     $msg = "<br/><strong>AIML categories cleared for file $filename!</strong><br />";
 
     return $msg;
@@ -87,8 +93,9 @@ function buildSelOpts()
 {
     global $bot_id, $bot_name, $msg;
     /** @noinspection SqlDialectInspection */
-    $sql = "SELECT DISTINCT filename FROM `aiml` WHERE `bot_id` = $bot_id ORDER BY `filename`;";
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $sql = "SELECT DISTINCT filename FROM `aiml` WHERE `bot_id` = :bot_id ORDER BY `filename`;";
+    $params = array(':bot_id' => $bot_id);
+    $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
     if (count($result) == 0)
     {

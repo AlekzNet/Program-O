@@ -5,6 +5,7 @@
 !admin/downloads
 admin/downloads/*
 !admin/downloads/index.html
+admin/scripts/dataTables.js
 admin/scripts/old
 !admin/uploads
 admin/uploads/*
@@ -14,17 +15,15 @@ admin/editAIML.htm
 config/global_config.php
 config/global_config*.php
 global_config.php
-!chatbot/debug/
-!chatbot/debug/profile.php
 chatbot/debug/*.txt
-library/reference/*.txt
+#library/reference/*.txt
 logs/*.log
 logs/*.txt
 backups
 backups/*
 patch.php
 DOM_ProofOfConcept
-_*
+.htaccess
 
 #################
 ## WeBuilder/ Rapid PHP
@@ -89,8 +88,8 @@ local.properties
 *.sln.docstates
 
 # Build results
-[Dd]ebug/
-[Rr]elease/
+./[Dd]ebug/
+./[Rr]elease/
 *_i.c
 *_p.c
 *.ilk

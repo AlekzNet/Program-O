@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: chatbot/conversation_start.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -34,11 +34,10 @@ ini_set('default_charset', $charset);
 // set to the user defined error handler
 set_error_handler("myErrorHandler");
 //open db connection
-$dbConn = db_open();
 // Collect system specs for the first debug message
 
 $versionCheckSQL = 'select version();';
-$result = db_fetch($versionCheckSQL);
+$result = db_fetch($versionCheckSQL, null, __FILE__, __FUNCTION__, __LINE__);
 $mySQL_version = $result['version()'];
 $pgoVersion = VERSION;
 $phpVersion = phpversion();
@@ -71,7 +70,7 @@ runDebug(__FILE__, __FUNCTION__, __LINE__, "Loaded all Includes", 4);
 
 //initialise globals
 $convoArr = array();
-//$convoArr = intialise_convoArray($convoArr);
+$convoArrStack = array();
 $new_convo_id = false;
 $old_convo_id = false;
 $say = '';
@@ -98,7 +97,6 @@ $form_vars = array_merge((array)$form_vars_get, (array)$form_vars_post);
 
 if (!isset($form_vars['say']))
 {
-    //error_log('Empty input! form vars = ' . print_r($form_vars, true) . PHP_EOL, 3, _LOG_PATH_ . 'debug_formvars.txt');
     $form_vars['say'] = '';
 }
 
@@ -124,24 +122,23 @@ $convo_id = session_id();
 runDebug(__FILE__, __FUNCTION__, __LINE__, "Debug level: $debug_level" . PHP_EOL . "session ID = $convo_id", 0);
 
 //if the user has said something
+runDebug(__FILE__, __FUNCTION__, __LINE__, "Conversation continuing. User said '{$say}'.", 4);
 if (!empty($say)) {
     // Chect to see if the user is clearing properties
     $lc_say = _strtolower($say);
 
-    if ($lc_say == 'clear properties' || $lc_say == ':reset bot') {
+    $convoArr = read_from_session();
+    if ($lc_say == 'clear properties' || $lc_say == ':reset bot')
+    {
         runDebug(__FILE__, __FUNCTION__, __LINE__, "Clearing client properties and starting over.", 4);
 
-        $convoArr = read_from_session();
         $_SESSION = array();
         $user_id = (isset($convoArr['conversation']['user_id'])) ? $convoArr['conversation']['user_id'] : -1;
 
         /** @noinspection SqlDialectInspection */
-        $sql = "DELETE FROM `$dbn`.`client_properties` WHERE `user_id` = $user_id;";
-
-        $sth = $dbConn->prepare($sql);
-        $sth->execute();
-
-        $numRows = $sth->rowCount();
+        $sql = "DELETE FROM `$dbn`.`client_properties` WHERE `user_id` = :user_id;";
+        $params = array(':user_id' => $user_id);
+        $numRows = db_write($sql, $params, false, __FILE__, __FUNCTION__, __LINE__);
         $convoArr['client_properties'] = null;
         $convoArr['conversation'] = array();
         $convoArr['conversation']['user_id'] = $user_id;
@@ -165,14 +162,12 @@ if (!empty($say)) {
         $sql = "UPDATE `$dbn`.`users` SET `session_id` = '$new_convo_id' WHERE `session_id` = '$old_convo_id';";
         runDebug(__FILE__, __FUNCTION__, __LINE__, "Update user - SQL:\n$sql", 3);
 
-        $sth = $dbConn->prepare($sql);
-        $sth->execute();
-
-        $confirm = $sth->rowCount();
+        $confirm = db_write($sql, null, false, __FILE__, __FUNCTION__, __LINE__);
         // Get user id, so that we can clear the client properties
         /** @noinspection SqlDialectInspection */
-        $sql = "SELECT `id` FROM `$dbn`.`users` WHERE `session_id` = '$new_convo_id' limit 1;";
-        $row = db_fetch($sql, null, __FILE__, __FUNCTION__, __LINE__);
+        $sql = "SELECT `id` FROM `$dbn`.`users` WHERE `session_id` = :new_convo_id limit 1;";
+        $params = array(':new_convo_id' => $new_convo_id);
+        $row = db_fetch($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
         if ($row !== false) {
             $user_id = $row['id'];
@@ -187,29 +182,29 @@ if (!empty($say)) {
 
         $say = "Hello";
     }
-    //add any pre-processing addons
 
-    $say = run_pre_input_addons($convoArr, $say);
-    $rawSay = $say;
-    $say = normalize_text($say);
-    /** @noinspection PhpUndefinedVariableInspection */
-    $bot_id = (isset($form_vars['bot_id'])) ? $form_vars['bot_id'] : $bot_id;
-
-    runDebug(__FILE__, __FUNCTION__, __LINE__, "Details:\nUser say: " . $say . "\nConvo id: " . $convo_id . "\nBot id: " . $bot_id . "\nFormat: " . $form_vars['format'], 2);
-    //get the stored vars
-    $convoArr = read_from_session();
-
-    if (!empty($form_vars['name'])) {
-        $convoArr['conversation']['user_name'] = $user_name = $form_vars['name'];
-    }
-
+    // Load bot and user stored values
     $convoArr = load_default_bot_values($convoArr);
-    //now overwrite with the recieved data
     $convoArr = check_set_convo_id($convoArr);
     $convoArr = check_set_bot($convoArr);
     $convoArr = check_set_user($convoArr);
 
-    if (!isset($convoArr['conversation']['user_id']) && isset($user_id)) {
+    // run any pre-processing addons
+    $convoArr = run_pre_input_addons($convoArr, $say);
+    $say = $convoArr['say'];
+    $rawSay = $say;
+    $convoArr['conversation']['rawSay'] = $rawSay;
+    $say = normalize_text($say);
+    $bot_id = (isset($form_vars['bot_id'])) ? $form_vars['bot_id'] : $bot_id;
+
+    runDebug(__FILE__, __FUNCTION__, __LINE__, "Details:\nUser say: " . $say . "\nConvo id: " . $convo_id . "\nBot id: " . $bot_id . "\nFormat: " . $form_vars['format'], 2);
+
+    if (!empty($form_vars['name']))
+    {
+        $convoArr['conversation']['user_name'] = $user_name = $form_vars['name'];
+    }
+    if (!isset($convoArr['conversation']['user_id']) && isset($user_id))
+    {
         $convoArr['conversation']['user_id'] = $user_id;
     }
 
@@ -223,7 +218,6 @@ if (!empty($say)) {
     runDebug(__FILE__, __FUNCTION__, __LINE__, "Default debug level = $debug_level", 0);
     $debug_level = isset($convoArr['conversation']['debug_level']) ? $convoArr['conversation']['debug_level'] : $debug_level;
     runDebug(__FILE__, __FUNCTION__, __LINE__, "Current debug level = $debug_level", 0);
-    $convoArr['conversation']['rawSay'] = $rawSay;
 
     if (!isset ($convoArr['conversation']['totallines'])) {
         //load the chatbot configuration for a new user
@@ -251,12 +245,11 @@ if (!empty($say)) {
     $display = $convoArr['send_to_user'];
     $time_start = $convoArr['time_start'];
     unset($convoArr['nounList']);
-    $final_convoArr = $convoArr;
 }
 else
 {
     $convoArr = intialise_convoArray($convoArr);
-    runDebug(__FILE__, __FUNCTION__, __LINE__, "Conversation intialised waiting user", 2);
+    runDebug(__FILE__, __FUNCTION__, __LINE__, "Conversation initialized, awaiting user", 2);
     $convoArr['send_to_user'] = 'User input not detected.';
     $cva = print_r($convoArr, true);
     //error_log("Convo Array:\n$cva", 3, _LOG_PATH_ . 'convoArr.txt');
@@ -264,7 +257,6 @@ else
 
 runDebug(__FILE__, __FUNCTION__, __LINE__, "Closing Database", 2);
 
-$dbConn = db_close();
 $time_end = microtime(true);
 $time = number_format(round(($time_end - $script_start) * 1000, 7), 3);
 display_conversation($convoArr);

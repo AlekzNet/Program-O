@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: gui/plain/index.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: MAY 17TH 2014
@@ -19,17 +19,34 @@ if (!file_exists('../../config/global_config.php'))
 
 /** @noinspection PhpIncludeInspection */
 require_once('../../config/global_config.php');
-/** @noinspection PhpIncludeInspection */
-require_once('../../chatbot/conversation_start.php');
-
+session_name('ProgramO');
+$debug_div = '';
+$hideSP = '';
+$resizeResponseDiv = '';
+$clearButton = '';
 $get_vars = (!empty($_GET)) ? filter_input_array(INPUT_GET) : array();
 $post_vars = (!empty($_POST)) ? filter_input_array(INPUT_POST) : array();
 $form_vars = array_merge($post_vars, $get_vars); // POST overrides and overwrites GET
-$bot_id = (!empty($form_vars['bot_id'])) ? $form_vars['bot_id'] : 1;
+if (!empty($form_vars)) require_once('../../chatbot/conversation_start.php');
+  $bot_id = (!empty($form_vars['bot_id'])) ? $form_vars['bot_id'] : 1;
 $say = (!empty($form_vars['say'])) ? $form_vars['say'] : '';
-$convo_id = session_id();
-$format = (!empty($form_vars['format'])) ? $form_vars['format'] : 'html';
+$convo_id = (isset($form_vars['convo_id'])) ? $form_vars['convo_id'] : md5(time());
+$format = (!empty($form_vars['format'])) ? _strtolower($form_vars['format']) : 'html';
 
+if (ERROR_DEBUGGING)
+{
+    $convo_id = (isset($form_vars['convo_id'])) ? $form_vars['convo_id'] : 'DEBUG'; // Hard-code the convo_id during debugging
+    $debug_src = (!empty($form_vars) && file_exists(_DEBUG_PATH_ . "{$convo_id}.txt")) ? _DEBUG_URL_ . "reader.php?file={$convo_id}.txt" : '';
+    $debug_div = <<<endDebugDiv
+
+<iframe id="debugDiv" src="$debug_src" frameborder="0">
+endDebugDiv;
+    $hideSP = 'display: none;';
+    $resizeResponseDiv = 'max-height: 200px;';
+    $clearButton = <<<endClr
+<input id="btnClear" name="" type="button" value="Clear Div" onclick="document.getElementById('responses').innerHTML = '';">
+endClr;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -57,7 +74,19 @@ $format = (!empty($form_vars['format'])) ? $form_vars['format'] : 'html';
             border: 3px inset #666;
             margin-left: auto;
             margin-right: auto;
+            margin-bottom: 1em;
             padding: 5px;
+            box-sizing: border-box;
+            <?php echo $resizeResponseDiv ?>
+        }
+        #debugDiv {
+            width: 90%;
+            min-height: 1.2em;
+            height: 55vh;
+            border: 3px inset #666;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
         }
 
         #input {
@@ -78,7 +107,9 @@ $format = (!empty($form_vars['format'])) ? $form_vars['format'] : 'html';
             box-shadow: 2px 2px 2px 0 #808080;
             padding: 5px;
             border-radius: 5px;
+            <?php echo $hideSP ?>
         }
+
 
         #convo_id {
             position: absolute;
@@ -91,6 +122,7 @@ $format = (!empty($form_vars['format'])) ? $form_vars['format'] : 'html';
             padding: 5px;
             border-radius: 5px;
         }
+
     </style>
 </head>
 <body onload="document.getElementById('say').focus()">
@@ -106,11 +138,13 @@ $format = (!empty($form_vars['format'])) ? $form_vars['format'] : 'html';
         <input type="hidden" name="convo_id" id="convo_id" value="<?php echo $convo_id; ?>"/>
         <input type="hidden" name="bot_id" id="bot_id" value="<?php echo $bot_id; ?>"/>
         <input type="hidden" name="format" id="format" value="<?php echo $format; ?>"/>
+        <?php echo $clearButton ?>
     </div>
 </form>
 <div id="responses">
     <?php echo $display . '<div id="end">&nbsp;</div>' . PHP_EOL ?>
 </div>
+<?php echo $debug_div ?>
 <div id="shameless_plug">
     To get your very own chatbot, visit <a href="http://www.program-o.com">program-o.com</a>!
 </div>

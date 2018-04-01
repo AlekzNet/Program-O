@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: config/global_config.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -143,11 +143,11 @@ $debugemail = '[debugemail]';
 
 /*
  * $debug_level - The level of messages to show the user
- * 0=none,
- * 1=errors only
- * 1=error+general,
- * 2=error+general+sql,
- * 3=everything
+ * 0 = none,
+ * 1 = errors only
+ * 2 = error + general,
+ * 3 = error + general + sql,
+ * 4 = everything
  */
 $debug_level = '[debug_level]';
 
@@ -159,7 +159,18 @@ $debug_level = '[debug_level]';
  * 3 = email each conversation line (not recommended)
  */
 $debug_mode = '[debug_mode]';
+
+/*
+ * ERROR_DEBUGGING
+ * Define a constant for the error handler to determine
+ * whether a context file is generated for each error
+ * WARNING! Setting this constant to true will generate a
+ * potentially large number of BIG files.
+ */
+define('ERROR_DEBUGGING', false);
+
 $save_state = '[save_state]';
+$pattern = '[bot_default_aiml_pattern]';
 $error_response = '[error_response]';
 $unknown_user = 'Seeker';
 

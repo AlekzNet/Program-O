@@ -1,30 +1,32 @@
 # [Program O](http://www.program-o.com)
 
 Readme info:
-- Version: 2.6.7
+- Version: 2.6.*
 - Authors: Elizabeth Perreau and Dave Morton
 - Date: June 19th 2014
 
-**NEWS:** Version 2.6.7 is out, with a new feature! Please see the
-[CHANGELOG](CHANGELOG.md) for details!
+**NEWS:** Version 2.6.9 is out. Please see the [CHANGELOG](CHANGELOG.md) for details.
 
 ## Introduction
 
-Program O is an AIML interpretor written in PHP, and uses a MySQL database to store
+Program O is an AIML interpreter written in PHP, and uses a MySQL database to store
 chatbot information, including the AIML files used to formulate the chatbot's responses.
 
 ## System Requirements
 
-Program O requires PHP version 5.3.0 or higher to function. This is, to our knowledge,
-the only "hard" requirement in place. The script has been tested with various server
-software, including Apache 1.3 and IIS on Windows Millenia machines, with MySQL server
-versions of 5.0 and above.
+Program O requires PHP version 5.4.0 or higher to function. It also requires the following
+PHP extensions:
+
+- PDO (as well as at least one PDO driver - the MySQL driver is recommended for most users)
+- cURL
+- mbString
+- Zip
 
 ## Configuration
 
 Program O supports the creation of multiple chatbots. The individual bots are configured
-from the admin area. Bot specific variables are stored in the database. Configuration
-of Program O itself is done in `/config/global_config.php`
+from the admin area. Bot specific settings and variables are stored in the database.
+Configuration of Program O itself is stored in `/config/global_config.php`.
 
 ## Using the bot
 
@@ -76,6 +78,6 @@ new bot!
 
 If you have a WordPress driven website, and wish to incorporate your Program O chatbot into your
 website with a minimum of fuss and hassle, then maybe the Elizaibots plugin is what you need!
-Add an Elizaibots chatbot to your wordpress site using the shortcode to embed the bot and conversation
-on your blog. Keep your readers amused! Check out http://wordpress.org/plugins/elizaibot-chatbots/
+Add an Elizaibots chatbot to your WordPress site using the short code to embed the bot and conversation
+on your blog. Keep your readers amused! Check out http://WordPress.org/plugins/elizaibot-chatbots/
 for more details.

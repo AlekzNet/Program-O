@@ -2,7 +2,7 @@
 /***************************************
 * http://www.program-o.com
 * PROGRAM O
-* Version: 2.6.7
+* Version: 2.6.*
 * FILE: install_programo.php
 * AUTHOR: Elizabeth Perreau and Dave Morton
 * DATE: FEB 01 2016
@@ -29,26 +29,15 @@ $dbu    = null;
 $dbp    = null;
 $dbPort = 3306;
 
-$clearDB = false;
-if (isset($input_vars['clearDB']))
-{
-    $clearDB = true;
-    $_SESSION['clearDB'] = $clearDB;
-}
 
 
 # Test for required version and extensions
 $myPHP_Version = phpversion();
-//$myPHP_Version = '5.2.9'; # debugging/testing - must be commented out for functionality.
 $pdoSupport = (class_exists('PDO'));
-$php_min_version = '5.3.0';
+$php_min_version = '5.4.0';
 $version_compare = version_compare($myPHP_Version, $php_min_version);
 
-$no_unicode_message = (extension_loaded('mbstring')) ? '' : "<p class=\"red bold\">Warning! Unicode Support is not available on this server. Non-English languages will not display properly. Please ask your hosting provider to enable the PHP mbstring extension to correct this.</p>\n";
-$no_zip_message = (extension_loaded('zip')) ? '' : "<p class=\"red bold\">Warning! The 'zip' PHP extension is not available. As a result, the upload and download of AIML files will be limited to individual files. Please ask your hosting provider to enable the PHP zip extension to correct this.</p>\n";
 $errorMessage = (!empty ($_SESSION['errorMessage'])) ? $_SESSION['errorMessage'] : '';
-$errorMessage .= $no_unicode_message;
-$errorMessage .= $no_zip_message;
 
 $pdoExtensionsArray = array(
     'PDO_CUBRID',
@@ -96,51 +85,6 @@ if (!$sd_exists)
 
 define('_SESSION_PATH_', $full_session_path);
 
-$writeCheckArray = array('config' => _CONF_PATH_, 'debug' => _DEBUG_PATH_, 'logs' => _LOG_PATH_, 'session' => _SESSION_PATH_);
-$errFlag = false;
-
-foreach ($writeCheckArray as $key => $folder)
-{
-    if (!is_writable($folder))
-    {
-        $test = file_put_contents("{$folder}test.txt", $key);
-        if (false === $test)
-        {
-            $dirExists = (file_exists($folder)) ? 'true' : 'false';
-            $permissions = fileperms($folder);
-            $txtPerms = showPerms($permissions);
-            error_log("The {$key} folder ({$folder}) is not writable. Folder exists?: $dirExists. Permissions: $txtPerms." . PHP_EOL, 3, _LOG_PATH_ . 'install.error.log');
-
-            $errFlag = true;
-            $errorMessage .= "<p class=\"red bold\">The $key folder cannot be written to, or does not exist. Please correct this before you continue.</p>";
-        }
-        else
-        {
-            unlink("{$folder}test.txt");
-        }
-    }
-}
-
-$additionalInfo = <<<endInfo
-  <p>
-    This is usually a permissions issue, and most often occurs with Linux-based systems. Check
-    file/folder permissions for the following directories:
-    <ul>
-      <li>The base install folder (where you unzipped or uploaded the script to)</li>
-      <li>admin</li>
-      <li>config</li>
-      <li>chatbot/debug</li>
-    </ul>
-    Permissions for these folders should be 0755. If they are not, then you need to change that. If you
-    have trouble with this, or have questions, please report the issue on
-    <a href="https://github.com/Program-O/Program-O/issues">our GitHub page</a>.
-  </p>
-endInfo;
-
-if ($errFlag) {
-    $errorMessage .= $additionalInfo;
-}
-
 $myHost = $_SERVER['SERVER_NAME'];
 chdir(dirname(realpath(__FILE__)));
 $page = (isset ($input_vars['page'])) ? $input_vars['page'] : 0;
@@ -160,38 +104,84 @@ $submitButton = $template->getSection('SubmitButton');
 switch ((int) $page)
 {
     case 0:
-        $pvpf = ($version_compare >= 0) ? 'true' : 'false';
         $main = $template->getSection('Checklist');
-        $liTemplate = '                            <li class="[oe]">PDO [ext] extension enabled?: <span class="ext_[tf] floatRight">[tf]</span></li>' . PHP_EOL;
+        $writeCheckArray = array('config' => _CONF_PATH_, 'debug' => _DEBUG_PATH_, 'logs' => _LOG_PATH_, 'session' => _SESSION_PATH_);
+        $writeCheckKeys  = array('config' => '[cfw]', 'debug' => '[dfw]', 'logs' => '[lfw]', 'session' => '[sfw]');
+        $writeCheckRepl  = array();
+        $errFlag = false;
+        $writableTemplate = '<span class="ext_[tf] floatRight">[pf]</span>';
+        $writeErrorText = '';
+        foreach ($writeCheckArray as $key => $folder)
+        {
+            $testFile = "{$folder}_test.txt";
+            $searchTag = $writeCheckKeys[$key];
+            $curSpan = $writableTemplate;
+            $permissions = fileperms($folder);
+            $txtPerms = showPerms($permissions);
+            $writeErrorTemplate = "            <li style=\"color: black\">The {$key} folder ({$folder}) is not writable.<span class=\"floatRight\"> Permissions: {$txtPerms}</span></li>";
+            $writeFlag = (is_writable($folder)) ? true : (chmod($folder, 0755));
+            //$writeFlag = ($key !== 'debug') ? true : false; // Debugging/testing code. Comment out unless testing or debugging
+            $writeErrorText .= ($writeFlag) ? '' : $writeErrorTemplate;
+            $errFlag = (!$writeFlag) ? true: $errFlag;
+            $curSpan = str_replace('[perms]', $txtPerms, $curSpan);
+            $curSpan = str_replace('[tf]', ($writeFlag) ? 'true' : 'false', $curSpan);
+            $curSpan = str_replace('[pf]', ($writeFlag) ? 'Pass' : 'Fail', $curSpan);
+            $main = str_replace($searchTag, $curSpan, $main);
+        }
+
+        $additionalInfo = <<<endInfo
+        <div class="m0a w50">
+            <p>
+                The following folders had permissions problems that PHP could not fix. This is usually an 'ownership' issue, and
+                most often occurs with Linux-based systems. Please check owner and group settings for the following directories:
+                <ul class="tal">
+$writeErrorText
+                </ul>
+                <hr/>
+                Owner and group for these folders should be the same as those of your web server software. If they are not, then you
+                need to change that. If you have trouble with this, or have questions, please report the issue on
+                <a href="https://github.com/Program-O/Program-O/issues">our GitHub page</a>.
+            </p>
+        </div>
+endInfo;
+
+        $reqs_not_met = '';
+        if ($errFlag) {
+            $reqs_not_met .= $additionalInfo;
+        }
+
+        $pvpf = ($version_compare >= 0) ? 'true' : 'false';
+        $liTemplate = '                            <li class="[oe]">PDO [ext] extension enabled?: <span class="ext_[tf] floatRight">[pf]</span></li>' . PHP_EOL;
         $pdo_reqs = '';
         $oddEven = 0;
-        $reqs_met = false;
         foreach ($pdoExtensionsArray as $ext)
         {
             $oeClass = ($oddEven % 2 === 0) ? 'odd' : 'even';
             $tf = (extension_loaded($ext)) ? 'true' : 'false';
+            $pf = ($tf === 'true') ? 'Pass' : 'Fail';
             $curLi = $liTemplate;
             $curLi = str_replace('[ext]', $ext, $curLi);
             $curLi = str_replace('[oe]', $oeClass, $curLi);
             $curLi = str_replace('[tf]', $tf, $curLi);
+            $curLi = str_replace('[pf]', $pf, $curLi);
             if ($tf === 'false') $curLi = '';
             $pdo_reqs .= $curLi;
             if ($tf !== 'false') $oddEven++;
         }
-        $reqs_not_met = '';
         if (empty($pdo_reqs)) # || true # Again, debugging/testing code, to be commented out for actual use.
         {
             $pdo_reqs = $liTemplate;
             $pdo_reqs = str_replace('[oe]', 'even', $pdo_reqs);
             $pdo_reqs = str_replace('[ext]', '', $pdo_reqs);
             $pdo_reqs = str_replace('[tf]', 'false', $pdo_reqs);
+            $pdo_reqs = str_replace('[pf]', 'Fail', $pdo_reqs);
             $reqs_not_met .= 'There are no PDO extensions available, so the install process cannot continue.<br>';
         }
         elseif ($pvpf == 'false')
         {
             $reqs_not_met .= "Your PHP version ({$myPHP_Version}) is older than the minimum required version of {$php_min_version}, so the install process cannot continue.<br>";
         }
-        else $reqs_met = true;
+        $reqs_met = empty($reqs_not_met);
         $main = str_replace('[pdo_reqs]', rtrim($pdo_reqs), $main);
         $rec_exts = '';
         $oddEven = 0;
@@ -200,9 +190,11 @@ switch ((int) $page)
             $oeClass = ($oddEven % 2 === 0) ? 'odd' : 'even';
             $curLi = $liTemplate;
             $tf = (extension_loaded($ext)) ? 'true' : 'false';
+            $pf = ($tf === 'true') ? 'Pass' : 'Fail';
             $curLi = str_replace('[ext]', $ext, $curLi);
             $curLi = str_replace('[oe]', $oeClass, $curLi);
             $curLi = str_replace('[tf]', $tf, $curLi);
+            $curLi = str_replace('[pf]', $pf, $curLi);
             $rec_exts .= $curLi;
             $oddEven++;
         }
@@ -213,8 +205,6 @@ switch ((int) $page)
         $continueLink = ($reqs_met) ? $template->getSection('Page0ContinueForm') :'<div class="center bold red">' .  $reqs_not_met . 'Please correct the items above in order to continue.</div>' . PHP_EOL;
         $main .= $continueLink;
         $main = str_replace('[blank]', '', $main);
-        $main .= $no_unicode_message;
-        $main .= $no_zip_message;
         break;
     case 1:
         $main = $template->getSection('InstallForm');
@@ -226,6 +216,7 @@ $content .= "\n    </body>\n</html>";
 
 $content = str_replace('[mainPanel]', $main, $content);
 $content = str_replace('[http_host]', $myHost, $content);
+$content = str_replace('[bot_default_aiml_pattern]', $pattern, $content);
 $content = str_replace('[error_response]', $error_response, $content);
 $content = str_replace('[notes]', $notes, $content);
 $content = str_replace('[PHP_SELF]', PHP_SELF, $content);
@@ -251,19 +242,12 @@ function Save()
     $errorMessage = '';
 
     // Do we want to start with a fresh, empty database?
-    $clearDB = false;
-    if (isset($_SESSION['clearDB']))
-    {
-        $clearDB = true;
-        unset($_SESSION['clearDB']);
-    }
     // initialize some variables and set some defaults
     $tagSearch = array();
     $varReplace = array();
-    $pattern = "RANDOM PICKUP LINE";
-    $error_response = "No AIML category found. This is a Default Response.";
-    $conversation_lines = '1';
-    $remember_up_to = '10';
+    $conversation_lines = 1;
+    $remember_up_to = 10;
+    $error_response = 'No AIML category found. This is a Default Response.';
     $_SESSION['errorMessage'] = '';
 
 
@@ -287,6 +271,9 @@ function Save()
 
     // Sort the array - not strictly necessary, but we're doing it anyway
     ksort($myPostVars);
+
+    // Check to see if the user wants a 'fresh start'
+    $clearDB = (isset($myPostVars['clearDB'])) ? true : false;
 
     // Create the SEARCH and REPLACE arrays
     foreach ($myPostVars as $key => $value)
@@ -319,7 +306,7 @@ function Save()
         foreach ($sqlArray as $sql)
         {
             try {
-                $insertSuccess = db_write($sql, null, false, __FILE__, __FUNCTION__, __LINE__, false);
+                $insertSuccess = db_write($sql,null, false, __FILE__, __FUNCTION__, __LINE__, false);
                 if (false === $insertSuccess){
                     throw new Exception('SQL operation failed!');
                 }
@@ -361,7 +348,7 @@ function Save()
                 /** @noinspection SqlDialectInspection */
                 /** @noinspection SqlNoDataSourceInspection */
                 $sql = "DROP TABLE IF EXISTS `srai_lookup`; CREATE TABLE IF NOT EXISTS `srai_lookup` (`id` int(11) NOT NULL AUTO_INCREMENT, `bot_id` int(11) NOT NULL, `pattern` text NOT NULL, `template_id` int(11) NOT NULL, PRIMARY KEY (`id`), KEY `pattern` (`pattern`(64)) COMMENT 'Search against this for performance boost') ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Contains previously stored SRAI calls' AUTO_INCREMENT=1;";
-                $affectedRows = db_write($sql, null, false, __FILE__, __FUNCTION__, __LINE__, false);
+                $affectedRows = db_write($sql,null, false, __FILE__, __FUNCTION__, __LINE__, false);
             }
             catch(Exception $e) {
               $errorMessage .= 'Could not add SRAI lookup table! Error is: ' . $e->getMessage();
@@ -371,53 +358,79 @@ function Save()
 
     /** @noinspection SqlDialectInspection */
     /** @noinspection SqlNoDataSourceInspection */
-    $sql = 'SELECT `error_response` FROM `bots` WHERE 1 limit 1';
-    $row = db_fetch($sql);
-    $error_response = $row['error_response'];
-
-    /** @noinspection SqlDialectInspection */
-    /** @noinspection SqlNoDataSourceInspection */
     $sql = 'SELECT `bot_id` FROM `bots`;';
     $result = db_fetchAll($sql);
+
+    $bot_id               = 1;
+    $bot_name             = $myPostVars['bot_name'];
+    $bot_desc             = $myPostVars['bot_desc'];
+    $bot_active           = $myPostVars['bot_active'];
+    $bot_parent_id        = 1;
+    $format               = $myPostVars['format'];
+    $save_state           = $myPostVars['save_state'];
+    $debugemail           = $myPostVars['debugemail'];
+    $debugshow            = $myPostVars['debug_level'];
+    $debugmode            = $myPostVars['debug_mode'];
+    $error_response       = $myPostVars['error_response'];
+    $default_aiml_pattern = 'RANDOM PICKUP LINE';
+
+    $params = array(
+        ':bot_id'               => $bot_id,
+        ':bot_name'             => $bot_name,
+        ':bot_desc'             => $bot_desc,
+        ':bot_active'           => $bot_active,
+        ':bot_parent_id'        => $bot_parent_id,
+        ':format'               => $format,
+        ':save_state'           => $save_state,
+        ':conversation_lines'   => $conversation_lines,
+        ':remember_up_to'       => $remember_up_to,
+        ':debugemail'           => $debugemail,
+        ':debugshow'            => $debugshow,
+        ':debugmode'            => $debugmode,
+        ':error_response'       => $error_response,
+        ':default_aiml_pattern' => $default_aiml_pattern,
+    );
 
     if (count($result) == 0)
     {
         /** @noinspection SqlDialectInspection */
         /** @noinspection SqlNoDataSourceInspection */
-        $sql_template = "
-            INSERT IGNORE INTO `bots` (`bot_id`, `bot_name`, `bot_desc`, `bot_active`, `bot_parent_id`, `format`, `save_state`, `conversation_lines`, `remember_up_to`, `debugemail`, `debugshow`, `debugmode`, `error_response`, `default_aiml_pattern`)
-            VALUES ([default_bot_id], '[bot_name]', '[bot_desc]', '[bot_active]', '[bot_parent_id]', '[format]', '[save_state]',
-            '$conversation_lines', '$remember_up_to', '[debugemail]', '[debugshow]', '[debugmode]', '$error_response', '$pattern');";
+        $sql = 'insert ignore into `bots` (`bot_id`, `bot_name`, `bot_desc`, `bot_active`, `bot_parent_id`, `format`, `save_state`, `conversation_lines`, `remember_up_to`, `debugemail`, `debugshow`, `debugmode`, `error_response`, `default_aiml_pattern`)
+    values ( :bot_id, :bot_name, :bot_desc, :bot_active, :bot_parent_id, :format, :save_state, :conversation_lines, :remember_up_to, :debugemail, :debugshow, :debugmode, :error_response, :default_aiml_pattern);';
 
-        $bot_id = 1;
-        $sql = str_replace('[default_bot_id]', $bot_id, $sql_template);
-        $sql = str_replace('[bot_name]', $myPostVars['bot_name'], $sql);
-        $sql = str_replace('[bot_desc]', $myPostVars['bot_desc'], $sql);
-        $sql = str_replace('[bot_active]', $myPostVars['bot_active'], $sql);
-        $sql = str_replace('[bot_parent_id]', 1, $sql);
-        $sql = str_replace('[format]', $myPostVars['format'], $sql);
-
-        // "Use PHP from DB setting
-        // "Update PHP in DB setting
-        $sql = str_replace('[save_state]', $myPostVars['save_state'], $sql);
-        $sql = str_replace('[conversation_lines]', $conversation_lines, $sql);
-        $sql = str_replace('[remember_up_to]', $remember_up_to, $sql);
-        $sql = str_replace('[debugemail]', $myPostVars['debugemail'], $sql);
-        $sql = str_replace('[debugshow]', $myPostVars['debug_level'], $sql);
-        $sql = str_replace('[debugmode]', $myPostVars['debug_mode'], $sql);
-        $sql = str_replace('[error_response]', $error_response, $sql);
-        $sql = str_replace('[aiml_pattern]', $pattern, $sql);
-
-        try
-        {
-            $affectedRows = db_write($sql, null, false, __FILE__, __FUNCTION__, __LINE__, false);
-            $errorMessage .= ($affectedRows > 0) ? '' : ' Could not create new bot!';
-        }
-        catch(Exception $e) {
-            $errorMessage .= $e->getMessage();
-        }
+    }
+    else
+    {
+        /** @noinspection SqlDialectInspection */
+        /** @noinspection SqlNoDataSourceInspection */
+        $sql = 'update `bots` set
+    `bot_name`             = :bot_name,
+    `bot_desc`             = :bot_desc,
+    `bot_active`           = :bot_active,
+    `bot_parent_id`        = :bot_parent_id,
+    `format`               = :format,
+    `save_state`           = :save_state,
+    `conversation_lines`   = :conversation_lines,
+    `remember_up_to`       = :remember_up_to,
+    `debugemail`           = :debugemail,
+    `debugshow`            = :debugshow,
+    `debugmode`            = :debugmode,
+    `error_response`       = :error_response,
+    `default_aiml_pattern` = :default_aiml_pattern
+where `bot_id` = :bot_id;
+    ';
     }
 
+    try
+    {
+        $debugSQL = db_parseSQL($sql, $params);
+        $affectedRows = db_write($sql, $params, false, __FILE__, __FUNCTION__, __LINE__, false);
+        $errorMessage .= ($affectedRows > 0) ? '' : ' Could not create new bot!<br>';
+        $errorMessage .= ($affectedRows > 0) ? '' : "SQL: {$debugSQL}";
+    }
+    catch(Exception $e) {
+        $errorMessage .= $e->getMessage();
+    }
     $cur_ip = $_SERVER['REMOTE_ADDR'];
     $encrypted_adm_dbp = md5($myPostVars['adm_dbp']);
     $adm_dbu = $myPostVars['adm_dbu'];
@@ -431,10 +444,15 @@ function Save()
     {
         /** @noinspection SqlDialectInspection */
         /** @noinspection SqlNoDataSourceInspection */
-        $sql = "INSERT ignore INTO `myprogramo` (`id`, `user_name`, `password`, `last_ip`) VALUES(null, '$adm_dbu', '$encrypted_adm_dbp', '$cur_ip');";
+        $sql = "INSERT ignore INTO `myprogramo` (`id`, `user_name`, `password`, `last_ip`) VALUES(null, :adm_dbu, :encrypted_adm_dbp, :cur_ip);";
+        $params = array(
+            ':adm_dbu' => $adm_dbu,
+            ':encrypted_adm_dbp' => $encrypted_adm_dbp,
+            ':cur_ip' => $cur_ip,
+        );
 
         try {
-            $affectedRows = db_write($sql, null, false, __FILE__, __FUNCTION__, __LINE__, false);
+            $affectedRows = db_write($sql, $params, false, __FILE__, __FUNCTION__, __LINE__, false);
             $errorMessage .= ($affectedRows > 0) ? '' : ' Could not create new Admin!';
         }
         catch(Exception $e) {
@@ -537,7 +555,7 @@ function db_open()
 
     try
     {
-        $dbConn = new PDO("mysql:host=$dbh;dbname=$dbn;charset=utf8", $dbu, $dbp);
+        $dbConn = new PDO("mysql:host=$dbh;port=$dbPort;dbname=$dbn;charset=utf8", $dbu, $dbp);
         $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $dbConn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $dbConn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);

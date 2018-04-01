@@ -2,12 +2,126 @@
 
 ##CHANGELOG info:
 
-- Version: 2.6.7
+- Version: 2.6.*
 - Authors: Elizabeth Perreau and Dave Morton
 - Date: June 19th 2017
 
 
 ##Version History:
+
+2.6.10  Code Cleanup, another round of bug fixes
+
+    From a performance boost with filling the SRAI lookup table, to addressing multiple
+    issues on GitHub, a number of improvements have been made:
+
+    1.  Refactored the code that filled the lookup table with SRAI data
+    2.  Additionally, fixed the bug in the function that actually uses the lookup table,
+        finally making it possible to use the feature
+    3.  Fixed bug reported in issue #354 - thatstar mis-counts
+    4.  Fixed the bug reported in issue #366 regarding user defined AIML
+    5.  Fixed the bug reported in issue #369 where "Search/Edit AIML" can't search punctuation
+    6.  Fixed a bug in the JSON GUI that periodically created an empty convo_id
+    7.  Partially addressed issue #370 where the custom `<math>` tag always returned
+        "Invalid math operation"
+    8.  Changed the minimum PHP version from 5.3.x to 5.4.x in order to be able to utilize
+        certain improved functionality that isn't supported in the older PHP version
+
+    There are other fixes as well, but let's not get carried away. :smile:
+
+2.6.9   Last New Feature, More Bug fixes
+
+    A README viewer was added to the admin's "Home" panel, mainly to get rid of all of the
+    empty, wasted space on that panel, but also to provide relevant information about the
+    current version of Program O in a convenient place to view it.
+
+    Several bug fixes have also been applied. The following is a short list of the more
+    'important' fixes:
+
+    1.  Replace all instances of `include({fileName})` with `require_once`
+    2.  Fix a bug in the code debugger built into the HTML GUI's page
+    3.  Fix a bug in the functios `db_fetch()` and `db_fetchAll()` where certain read
+        failures were not being reported or logged
+    4.  Fixed a bug in the function `set_wildcards()` where typos in some of the
+        RegEx code were causing search failures
+    5.  Fixed a bug in the function `parse_condition_tag()` that was causing certain
+        variations of the tag to fail
+    6.  Fixed a bug in the function `log_conversation()` that was causing duplicate
+        entries in the `client_properties` table of the database
+
+2.6.8   Code Refactor, new <date> tag attributes
+
+### Bug Fixes
+The following bugs were found and fixed:
+    1.  A bug in Windows with certain locales (Hungarian, for example) have no UTF-8 support, so
+        were triggering errors in the code that parses the AIML `<date>` tag. This has been fixed.
+    2.  While testing the fix for the `<date>` tag it was discovered that the downloads page
+        was adding files to the Zip archive to be downloaded that didn't belong to the selected
+        chatbot. this isn't noticeable when there is only one bot, but with multiple chatbots
+        it created an issue. This has also been fixed.
+
+### Code Refactoring
+    A review of some of the admin pages has shown that some of the code that deals with input
+    variables from HTML forms was out of date, so some refactoring has been done to correct this.
+    Several admin pages were affected, with more to come in the near future.
+
+    Another thing that has been improved is error handling within the admin page system. Now all
+    errors within the admin pages will be logged from a central function that will provide more
+    detailed information about what's going on when errors, warnings or notices are triggered.
+    Each script will now have their own log files, as well as error context log files in order to
+    help isolate and identify bugs faster and more efficiently.
+
+    Program O's custom error handler for the admin pages has also been revamped and upgraded,
+    with more features and options being made available for debugging.  The error handler has been
+    moved into the library in order to make it more accessible to ALL admin scripts, and an
+    option has been added to create a "context" file that contains all variables defined at
+    the time an error was triggered. When this option is set to TRUE in the global config file
+    a new context log is created in the `logs` folder, with the filename of the script where
+    the error occurred, as well as the date and time (to the second) when the error was
+    triggered. **WARNING!** this option should only be enabled for long enough to troubleshoot
+    issues. It generates a new (and rather large) file for EVERY ERROR that's triggered, and
+    can add up fast.
+
+### New <date> Tag Attributes
+    While testing the `<date>` tag it was noticed that there was a decided lack of flexibility
+    with regard to what the tag could be used for; notably in the area of past or future dates.
+    The AIML specification only allowed for changing the format, timezone or the locale (language)
+    of the tag. This is fine if you're referring to the current date/time, but there was no way
+    to have the date shown for some time in the past or future. This has beeh addressed by adding
+    support for two new attributes for the `<date>` tag: `timestamp` and `offset`. These attributes
+    are optional and work as follows:
+
+    1. timestamp:
+        The timestamp defaults to the current Unix timestamp at the time the tag is parsed. It
+        requires a 32 bit signed integer if used, and equates to the number of seconds elapsed
+        from the [Unix Epoch](https://en.wikipedia.org/wiki/Unix_time).
+    2. offset
+        The offset attribute (which defaults to an empty string) provides a fairly simple way
+        to obtain past or future dates by specifying how many units of time (e.g. seconds,
+        minutes, etc.) to add or subtract. The following are some valid examples of time offsets:
+
+            * +1 hour
+            * -1 day (this is "yesterday")
+            * +3 weeks
+            * -5 years
+
+        Valid time units are:
+
+            * seconds    ('sec', 'second', 'seconds')
+            * minutes    ('min', 'minute', 'minutes')
+            * hours      ('hr', 'hour', 'hours')
+            * days       ('day', 'days')
+            * weeks      ('week', 'weeks')
+            * fortnights ('fortnight', 'fortnights')
+            * months     ('month', 'months')
+            * years      ('year', 'years')
+
+        This added flexibility allows for improved use of the `<date>` tag in situations
+        where a user might ask about information about past or future dates. For example,
+        if a user asks what the date will be in 3 weeks (`<date offset="+3 weeks"/>`), or what
+        day of the week yesterday was (`<date format="%A" offset="-1 day"/>`), the chatbot
+        can respond easily, without a lot of hoops to jump through.
+
+
 
 2.6.7   Requirements Checklist
 
@@ -223,8 +337,8 @@ in the affected table (aiml_userdefined). This is a necessary step**
 1. Refactored the code that deals with DB access to completely remove the
     last of the mysql_* functions, including "fallback support".
 2. Added an additional table to the database to handle looking up previously
-    used calls to <srai> tags. This will improve performance in the future,
-    in that if an <srai> tag is stored in the lookup table, the script doesn't
+    used calls to `<srai>` tags. This will improve performance in the future,
+    in that if an `<srai>` tag is stored in the lookup table, the script doesn't
     have to run through the entire AIML table to find it. If a suitable srai
     category is found that isn't already in the lookup table, it's added for
     future use. While the table is being added now, the feature is not yet
@@ -235,9 +349,9 @@ in the affected table (aiml_userdefined). This is a necessary step**
 
 1. Added PDO support for PHP versions that support it (and have it enabled),
     with a fallback to the original MySQL functions if no PDO support is detected
-2. Finally found the problem with template-side <that> tags not being displayed
+2. Finally found the problem with template-side `<that>` tags not being displayed
     correctly. Special thanks to Tom (AKA Slow Putzo) for the assist with this!
-3. Also fixed the long-standing bug with pattern-side <that> tags not being
+3. Also fixed the long-standing bug with pattern-side `<that>` tags not being
     scored and chosen correctly. Once again, Thanks Tom! :D
 4. Removed the DB stats page from the admin. It was more or less a failed
     experiment, and really needed to be removed.
@@ -268,7 +382,7 @@ in the affected table (aiml_userdefined). This is a necessary step**
 
 2.2.2   Bug Fixes/versioning refactor
 
-1. Fixed a bug that prevented proper implementation of template-side <that> tags
+1. Fixed a bug that prevented proper implementation of template-side `<that>` tags
 2. updated and corrected the script version in all files that contain version information
 3. implemented functionality that sets the scripts internal version based on the contents
     of version.txt, rather than hard-coding it
@@ -291,16 +405,16 @@ in the affected table (aiml_userdefined). This is a necessary step**
 
 2.1.5   Bug fixes/merge to "Master" branch
 
-1. Corrected a bug that improperly ordered the collections of words gathered in <pattern> and <that> tags
+1. Corrected a bug that improperly ordered the collections of words gathered in `<pattern>` and `<that>` tags
 2. Corrected multiple minor bugs in the Download script that affected the use of said downloaded AIML
     files with Pandorabots.
 3. Adjusted the function that checks GitHub for the current version of the script, based on changes they
     made to their API. Also added some error handling, in case GitHub can't be reached.
 4. Modified some of the debugging output descriptors to avoid unnecessary and potentially confusing
     message duplication.
-5. Corrected a bug in the main SQL query that caused certain valid AIML categories that use the <that> tag
+5. Corrected a bug in the main SQL query that caused certain valid AIML categories that use the `<that>` tag
     to be missed in the main search.
-6. Added 'experimental' support for Pandorabots style <date> tags, adding functionality for both LOCALE
+6. Added 'experimental' support for Pandorabots style `<date>` tags, adding functionality for both LOCALE
     and TIMEZONE attributes (support for these attributes was mentioned previously, but not added at that
     time).
 7. Other minor cosmetic changes and typo corrections that didn't affect functionality.
@@ -323,9 +437,9 @@ in the affected table (aiml_userdefined). This is a necessary step**
 2.1.3   Added the last of the AIML tag functions/Refactored the DB/Multiple Bug Fixes
 
 1. Added functions for the remaining AIML tags:
-        <thatstar>
-        <topicstar>
-        <gossip>
+        `<thatstar>`
+        `<topicstar>`
+        `<gossip>`
 2. Refactored the database, standardizing field names across all of the tables.
 3. Refactored the admin pages, replacing $_GET, $_POST and $_REQUEST with input
     filtering functions.
@@ -344,18 +458,18 @@ in the affected table (aiml_userdefined). This is a necessary step**
 2.1.2   Added more AIML tag functions/Script Streamlining
 
 1. Added functions for the following AIML tags:
-       <condition>
-       <system>
-       <learn>
+       `<condition>`
+       `<system>`
+       `<learn>`
 2. I went through the entire script, looking for and deleting "orphaned" functions
     and streamlining code wherever possible.
 
 2.1.1   Added functions for some AIML tags
 
 1. Added functions for the following AIML tags:
-        <gender>
-        <person>
-        <person2>
+        `<gender>`
+        `<person>`
+        `<person2>`
 
 2.1.0   Major revision change / Bug fixes
 
@@ -401,7 +515,7 @@ in the affected table (aiml_userdefined). This is a necessary step**
 3. Updated the addon checkForBan, activating it, and adding functionality to add banned users
   to the list of banned IP addresses. It's still up to the botmaster to implement banning in
   their AIML files. To ban a user, insert the following into the apropriate AIML template:
-  <ban><get name="ip_address" /></ban>
+  `<ban><get name="ip_address" /></ban>`
           For further assistance, please check out the Program O Support Forums.
 
 2.0.5   Bug fixes

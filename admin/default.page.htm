@@ -209,7 +209,7 @@ between the start and end section tags are the only parts of the template that a
 <!--fieldset-->
         <form id="botAttributes" action="index.php?page=select_bots" method="post">
             <div class="leftHalf noBorder">
-                <table class="formTable">
+                <table class="_formTable">
                     <tr>
                         <td width="40%"><label for="bot_name"><span class="label">Bot Name</span></label></td>
                         <td width="60%">
@@ -285,7 +285,7 @@ between the start and end section tags are the only parts of the template that a
                 </table>
             </div>
             <div class="rightHalf noBorder">
-                <table class="formTable">
+                <table class="_formTable">
                     <tr>
                         <td width="40%"><label for="bot_desc"><span class="label">Bot Description</span></label></td>
                         <td width="60%">
@@ -698,7 +698,25 @@ between the start and end section tags are the only parts of the template that a
 <!-- Section LogoLink End -->
 <!-- Section LogoLinkScript Start -->
 [blank]
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+        <script type="text/javascript" src="//cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+        [editScriptTag]
         <script type="text/javascript" id="lowerScripts">
+            var vhSmall = '40vh';
+            var vhLarge = '51vh';
+            if (typeof getVhByScript !== 'undefined') {
+                getVhByScript();
+            }
+
+            (logoStatus === 'Show') ? ShowLogo() : HideLogo();
+            var mc_height = $('#main_content').height();
+            var readMe = $('#readMe');
+            if (readMe.length) {
+                var rm_top = readMe.position().top;
+                var rm_height = mc_height - rm_top;
+                readMe.height(rm_height);
+            }
+
             function ShowLogo() {
                 var body = document.body;
                 body.style.backgroundImage = 'url(images/repeated_header2.jpg)';
@@ -712,6 +730,8 @@ between the start and end section tags are the only parts of the template that a
                 main.style.top = '160px';
                 var rightNav = document.getElementById('right_nav');
                 if (rightNav) rightNav.style.top = '160px';
+                $('#script_version, #script_version div').removeClass('horiz').addClass('vert');
+                $('div.dataTables_scrollBody').css('height', vhSmall);
             }
             function HideLogo() {
                 var body = document.body;
@@ -726,7 +746,10 @@ between the start and end section tags are the only parts of the template that a
                 main.style.top = '50px';
                 var rightNav = document.getElementById('right_nav');
                 if (rightNav) rightNav.style.top = '50px';
+                $('#script_version, #script_version div').removeClass('vert').addClass('horiz');
+                $('div.dataTables_scrollBody').css('height', vhLarge);
             }
+
             function toggleLogo() {
                 if (logoStatus == 'Hide') {
                     logoStatus = 'Show';
@@ -759,11 +782,11 @@ between the start and end section tags are the only parts of the template that a
             }
             function showProgressImg() {
                 var img = '<img src="images/progressbar.gif"/>';
-                var closeButton = document.getElementById('closeButton');
+                var closeButton = '<div class="closeButton" id="closeButton" onclick="closeStatus(\'errMsg\')" title="Click to hide">&nbsp;</div>';
                 var errMsg = document.getElementById('errMsg');
                 errMsg.style.display = 'block';
-                errMsg.innerHTML += closeButton.innerHTML;
-                errMsg.innerHTML += img + '<p>Please wait...</p>';
+                errMsg.innerHTML = '';
+                errMsg.innerHTML = closeButton + img + '<p>Please wait...</p>';
             }
             var logoStatus = getCookie('display');
             logoStatus = (logoStatus == 'Hide' || logoStatus == 'Show') ? logoStatus : 'Show';
@@ -781,7 +804,7 @@ between the start and end section tags are the only parts of the template that a
                 $('a.cl_del').on('click', function(e){
                     e.preventDefault();
                     var data_sr = $(this).data('sr');
-                    //console.log();
+                    //console.log('data_sr =', data_sr);
                     //$('#errMsg').append('attr =' + info_id + "<br>\ndata =" + data_id).show();
                     var url = 'logs.php?action=clearLogs';
                     if (confirm('Are you sure you want to delete these conversation log entries? This cannot be undone.')) {
@@ -908,7 +931,7 @@ between the start and end section tags are the only parts of the template that a
         <div id="uploadForm" class="fullWidth noBorder">
             <p>
                 Use this uploader to add AIML categories to your chatbot's database. You have the option
-                to upload either individual AIML files, or ZIP archive files of up to 2MB in size.
+                to upload either individual AIML files, or ZIP archive files of up to [fs_limit_title] in size.
                 This uploader no longer performs XML validation, so you need to validate your AIML files prior to
                 uploading them. It's <strong><u>STRONGLY SUGGESTED</u></strong> that you use either W3School's
                 <a href="http://www.w3schools.com/xml/xml_validator.asp" target="_blank">XML Validator</a>,
@@ -987,7 +1010,7 @@ between the start and end section tags are the only parts of the template that a
             The SRAI lookup table currently contains [row_count] entries for the chatbot named "[bot_name]".
         </div>
         <p>
-            <a href="?page=srai_lookup&amp;action=fillLookup">Fill Lookup Table</a>&nbsp;(See the HELP link for details)
+            <a id="lnkFLT" href="?page=srai_lookup&amp;action=fillLookup">Fill Lookup Table</a>&nbsp;(See the HELP link for details)
         </p>
         <hr class="w80 m0a mb5">
         <div class="holder">
@@ -1041,9 +1064,6 @@ between the start and end section tags are the only parts of the template that a
             <div class='search-msg'></div>
         </div>
 [showHelp]
-        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-        <script type="text/javascript" src="//cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
-        <script type="text/javascript" src="scripts/editSRAI.js"></script>
 <!-- Section editSRAIPage End -->
 <!-- Section editSRAIShowHelp Start -->
 [blank]
@@ -1119,9 +1139,18 @@ between the start and end section tags are the only parts of the template that a
             </div>
         </div>
 <!-- Section StatsPage End -->
+<!-- Section PersonPage Start -->
+[blank]
+        <div id="personDiv">
+            <h2>1st to 2nd/2nd to 1st transforms</h2>
+            <div class="foo">
+                <p>This page is under construction!</p>
+            </div>
+        </div>
+<!-- Section PersonPage End -->
 <!-- Section EditAimlPage Start -->
 [blank]
-        <link rel="stylesheet" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css"/>
+        <link rel="stylesheet" href="//cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css"/>
         <style type="text/css">
             .dataTables_wrapper .dataTables_paginate .paginate_button {padding: 0;}
             table.dataTable tbody th, table.dataTable tbody td, table.dataTable thead th, table.dataTable thead td {padding: 1px 2px 1px 0;}
@@ -1168,9 +1197,11 @@ between the start and end section tags are the only parts of the template that a
                         <td class="w15">
                             <textarea name="topic" rows="2" placeholder="Topic" class="newCat"></textarea>
                         </td>
+                        <td class="w15">
+                            <textarea name="filename" rows="2" placeholder="Filename" class="newCat">admin_added.aiml</textarea>
+                        </td>
                         <td class="w10">
                             <input id="btnSaveNewCat" name="" type="submit" value="Save Category">
-                            <input type="hidden" name="filename" value="admin_added.aiml"/>
                             <input type="hidden" name="action" value="add"/>
                         </td>
                     </tr>
@@ -1179,9 +1210,6 @@ between the start and end section tags are the only parts of the template that a
             <div class='search-msg'></div>
         </div>
 [showHelp]
-        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-        <script type="text/javascript" src="//cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
-        <script type="text/javascript" src="scripts/editAiml.js"></script>
 <!-- Section EditAimlPage End -->
 <!-- Section EditUDAimlPage Start -->
 [blank]
@@ -1216,9 +1244,6 @@ between the start and end section tags are the only parts of the template that a
             <div class='search-msg'></div>
         </div>
 [showHelp]
-        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
-        <script type="text/javascript" src="//cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
-        <script type="text/javascript" src="scripts/editUDAiml.js"></script>
 <!-- Section EditUDAimlPage End -->
 <!-- Section DataTable Start -->
 [blank]
@@ -1338,23 +1363,20 @@ between the start and end section tags are the only parts of the template that a
                         </td>
                         <td>
                             <input type="radio" name="action" id="actionClearAll" value="clear">
-                            <label for="actionClearAll" style="width: 250px">Clear <strong>ALL</strong> AIML categories (Purge
-                                database)</label>
+                            <label for="actionClearAll" style="width: 250px">Clear <b><u>ALL</u></b> AIML categories for [bot_name]</label>
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="2">
-                            <select name="clearFile" id="clearFile" size="1" style="margin: 14px;"
+                        <td class="center">
+                            <select name="clearFile" id="clearFile" size="1" class="clrFrmTDBottom"
                                     onclick="document.getElementById('actionClearFile').checked = true"
                                     onchange="document.getElementById('actionClearFile').checked = true">
                                 <option value="null" selected="selected">Choose a file</option>
                                 [selectOptions]
                             </select>
                         </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <input type="submit" name="" value="Submit">
+                        <td class="center" style="vertical-align: baseline">
+                            <input class="clrFrmTDBottom" type="submit" name="" value="Submit">
                         </td>
                     </tr>
                 </table>

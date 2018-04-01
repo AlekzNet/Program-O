@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: index.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -14,6 +14,7 @@ $thisFile = __FILE__;
 if (!file_exists('../config/global_config.php'))
 {
     header('location: ../install/install_programo.php');
+    exit();
 }
 
 /** @noinspection PhpIncludeInspection */
@@ -24,7 +25,6 @@ ini_set('log_errors', true);
 ini_set('error_log', _LOG_PATH_ . 'admin.error.log');
 ini_set('html_errors', false);
 ini_set('display_errors', false);
-set_exception_handler("handle_exceptions");
 
 //load shared files
 /** @noinspection PhpIncludeInspection */
@@ -38,11 +38,15 @@ require_once(_LIB_PATH_ . 'template.class.php');
 /** @noinspection PhpIncludeInspection */
 require_once(_ADMIN_PATH_ . 'allowedPages.php');
 
+set_error_handler('handle_errors', E_ALL | E_USER_ERROR | E_USER_WARNING | E_USER_NOTICE);
 $branches = array(
     'master' => 'Master',
-    'dev' => 'Development'
+    'dev' => 'Development',
+    'person' => 'Person Tag Testing',
 );
 
+$editScript = '';
+$editScriptTag = '';
 // Set session parameters
 $session_name = 'PGO_Admin';
 session_name($session_name);
@@ -50,7 +54,6 @@ session_start();
 $msg = '';
 
 // Get form inputs
-$pc = print_r($_GET, true) . "\n" . print_r($_POST, true);
 $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_STRING);
 $page = ($page === false || $page === null) ? 'main' : $page;
 
@@ -59,10 +62,8 @@ if (!array_key_exists($page, $allowed_pages))
     $msg = 'Invalid argument!';
 }
 
-$filters = $allowed_pages[$page];
-$post_vars = filter_input_array(INPUT_POST, $filters);
-$get_vars = filter_input_array(INPUT_GET, $filters);
-$input_vars = array_merge((array)$get_vars, (array)$post_vars);
+$allowed_input_vars = (isset($allowed_pages[$page])) ? $allowed_pages[$page] : array();
+$form_vars = clean_inputs($allowed_input_vars);
 
 // Set default values
 $bot_name = '<b class="red">not selected</b>';
@@ -78,10 +79,10 @@ $currentLocalVersion = VERSION;
 
 $upToDate = <<<endUTD
 
-            <strong>Program O</strong><br>
-            Current Local Version: $currentLocalVersion<br>
-            Current GitHub Version: $githubVersion<br>
-            Current Branch: {$branches[$branch]}<br>
+            <div class="vert"><strong>Program O</strong></div>
+            <div class="vert">Current Local Version: $currentLocalVersion</div>
+            <div class="vert">Current GitHub Version: $githubVersion</div>
+            <div class="vert">Current Branch: {$branches[$branch]}</div>
             <!-- Current Database Name: {$dbn} -->
 endUTD;
 
@@ -91,9 +92,8 @@ $newVersionAvailable = "Program O $githubVersion is now available for the "
     . $branches[$branch] . ' branch)';
 
 $version = (version_compare(VERSION, $githubVersion, '>=')) ? $upToDate : $newVersionAvailable;
-$dbConn = db_open();
 
-if ($get_vars['page'] == 'logout')
+if ($page == 'logout')
 {
     logout();
 }
@@ -104,10 +104,10 @@ $curPage = 'logout';
 switch ($logged_in)
 {
     case true:
-        $curPage = (isset($get_vars['page'])) ? $get_vars['page'] : 'main';
+        $curPage = (isset($form_vars['page'])) ? $form_vars['page'] : 'main';
         break;
     default:
-        $curPage = ($get_vars['page'] == 'login') ? login() : 'logout';
+        $curPage = (isset($form_vars['page']) && $form_vars['page'] == 'login') ? login() : 'logout';
 }
 
 $name       = (isset($_SESSION['poadmin']['name'])) ? $_SESSION['poadmin']['name'] : '';
@@ -156,7 +156,7 @@ if ($curPage == 'login' && !empty($_SESSION['poadmin']['logged_in']))
 }
 
 $_SESSION['poadmin']['curPage'] = $curPage;
-($curPage != 'logout' || $curPage == 'login') ? include("$curPage.php") : false;
+($curPage != 'logout' || $curPage == 'login') ? require_once("{$curPage}.php") : false;
 
 $bot_format_link = (!empty($bot_format)) ? "&amp;format=$bot_format" : '';
 $curPage = (isset($curPage)) ? $curPage : 'main';
@@ -222,6 +222,7 @@ $searches = array(
     '[bSelOptD]'        => $bSelOptD,
     '[bSelOptM]'        => $bSelOptM,
     '[bot_format_link]' => $bot_format_link,
+    '[editScriptTag]'   => $editScriptTag,
 );
 
 foreach ($searches as $search => $replace)
@@ -428,6 +429,16 @@ function makeLeftLinks()
             '[linkTitle]' => ' title="Edit the Word Censor entries"',
             '[linkLabel]' => 'Word Censor'
         ),
+/*
+        array( # person tag
+            '[linkClass]' => ' class="[curClass]"',
+            '[linkHref]' => ' href="index.php?page=person"',
+            '[linkOnclick]' => '',
+            '[linkAlt]' => ' alt="Person Transformations"',
+            '[linkTitle]' => ' title="Person Transformations"',
+            '[linkLabel]' => 'Person Transformations'
+        ),
+*/
         array( # Edit AIML
             '[linkClass]' => ' class="[curClass]"',
             '[linkHref]' => ' href="index.php?page=editAiml"',
@@ -478,14 +489,6 @@ function makeLeftLinks()
         ),
         array(
             '[linkClass]' => '',
-            '[linkHref]' => ' href="#"',
-            '[linkOnclick]' => ' onclick="toggleLogo(); return false;"',
-            '[linkAlt]' => ' alt="Toggle the Logo"',
-            '[linkTitle]' => ' title="Toggle the Logo"',
-            '[linkLabel]' => 'Toggle the Logo'
-        ),
-        array(
-            '[linkClass]' => '',
             '[linkHref]' => ' href="' . _BASE_URL_ . '?bot_id=[botId][bot_format_link]"',
             '[linkOnclick]' => ' target="_blank"',
             '[linkAlt]' => ' alt="open the page for [curBot] in a new tab/window"',
@@ -507,6 +510,14 @@ function makeLeftLinks()
             '[linkAlt]' => ' alt="Log File Viewer"',
             '[linkTitle]' => ' title="Log File Viewer in a new tab/window"',
             '[linkLabel]' => 'Log File Viewer'
+        ),
+        array(
+            '[linkClass]' => '',
+            '[linkHref]' => ' href="#"',
+            '[linkOnclick]' => ' onclick="toggleLogo(); return false;"',
+            '[linkAlt]' => ' alt="Toggle the Logo"',
+            '[linkTitle]' => ' title="Toggle the Logo"',
+            '[linkLabel]' => 'Toggle the Logo'
         ),
     );
     return $out;
@@ -554,34 +565,25 @@ function getCurrentVersion($branch)
  * @param exception $e
  * @return string
  */
-function handle_exceptions(Exception $e)
-{
-    global $msg;
-    $trace = $e->getTrace();
-    file_put_contents(_LOG_PATH_ . 'admin.exception.log', print_r($trace, true), FILE_APPEND);
-    $msg .= $e->getMessage();
-
-    return 'logout';
-}
 
 function login()
 {
-    global $post_vars, $get_vars, $dbConn, $msg;
+    global $form_vars, $msg;
 
-    if ((!isset($post_vars['user_name'])) || (!isset($post_vars['pw'])))
+    if ((!isset($form_vars['user_name'])) || (!isset($form_vars['pw'])))
     {
         return 'logout';
     }
 
     //$_SESSION['poadmin']['display'] = $hide_logo;
-    $user_name = $post_vars['user_name'];
-    $pw_hash = md5($post_vars['pw']);
+    $user_name = $form_vars['user_name'];
+    $pw_hash = md5($form_vars['pw']);
 
     /** @noinspection SqlDialectInspection */
     $sql = 'SELECT * FROM `myprogramo` WHERE user_name = :user_name AND password = :pw_hash;';
     $params = array(':user_name' => $user_name, ':pw_hash' => $pw_hash);
     $debugSQL = db_parseSQL($sql, $params);
-    save_file(_LOG_PATH_ . 'login.sql.txt', $debugSQL);
+    //save_file(_LOG_PATH_ . 'login.sql.txt', $debugSQL);
     $row = db_fetch($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
     if (!empty($row))
@@ -612,7 +614,7 @@ function login()
 
         /** @noinspection SqlDialectInspection */
         $sql = "SELECT * FROM `bots` WHERE bot_active = '1' ORDER BY bot_id ASC LIMIT 1";
-        $row = db_fetch($sql, null, __FILE__, __FUNCTION__, __LINE__);
+        $row = db_fetch($sql,null, __FILE__, __FUNCTION__, __LINE__);
         $count = count($row);
 
         if ($count > 0)

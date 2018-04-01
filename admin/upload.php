@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.7
+ * Version: 2.6.*
  * FILE: upload.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -14,6 +14,48 @@ ini_set('max_execution_time', '0');
 ini_set('display_errors', false);
 ini_set('log_errors', true);
 chdir(_ADMIN_PATH_);
+// check max file upload size and max post size, see which is smaller, and limit upload size to that value
+$upload_max_filesize = ini_get('upload_max_filesize');
+$post_max_size = ini_get('post_max_size');
+$limit_search = '/(\d+)(\w)/';
+preg_match($limit_search, $upload_max_filesize, $umf_matches);
+preg_match($limit_search, $post_max_size, $pms_matches);
+$umf_value = $umf_matches[1];
+$umf_suffix = strtoupper($umf_matches[2]);
+switch ($umf_suffix)
+{
+    case 'K':
+        $umf_factor = 1000;
+        break;
+    case 'M':
+        $umf_factor = 1000 * 1000;
+        break;
+    case 'G':
+        $umf_factor = 1000 * 1000 * 1000;
+        break;
+    default: $umf_factor = 1;
+}
+$umf_limit = $umf_value * $umf_factor;
+
+$pms_value = $pms_matches[1];
+$pms_suffix = strtoupper($pms_matches[2]);
+switch ($pms_suffix)
+{
+    case 'K':
+        $pms_factor = 1000;
+        break;
+    case 'M':
+        $pms_factor = 1000 * 1000;
+        break;
+    case 'G':
+        $pms_factor = 1000 * 1000 * 1000;
+        break;
+    default: $pms_factor = 1;
+}
+$pms_limit = $pms_value * $pms_factor;
+$fs_limit = ($umf_limit >= $pms_limit) ? $pms_limit : $umf_limit;
+$fs_limit_title = ($umf_limit >= $pms_limit) ? $pms_matches[0] : $umf_matches[0];
+$fs_limit_title .= 'B';
 
 $validationStatus = '';
 $msg = '';
@@ -62,8 +104,8 @@ $upperScripts = <<<endScript
         if (!file_upload.files) return false;
         var fileSize = file_upload.files[0].size;//.fileSize;
         var fileName = file_upload.files[0].name;//.fileSize;
-        if (fileSize > 2000000){
-          showError("The file " + fileName + " exceeds the file size limit of 2MB. Please choose a different file.")
+        if (fileSize > {$fs_limit}){
+          showError("The file " + fileName + " exceeds the file size limit of {$fs_limit_title}. Please choose a different file.")
           file_upload.value = null;
         }
         var fileType = file_upload.files[0].type;//.fileSize;
@@ -126,6 +168,7 @@ $mainContent = str_replace('[upload_content]', $uploadContent, $mainContent);
 $mainContent = str_replace('[showHelp]', $showHelp, $mainContent);
 $mainContent = str_replace('[AIML_List]', $AIML_List, $mainContent);
 $mainContent = str_replace('[all_bots]', $all_bots, $mainContent);
+$mainContent = str_replace('[fs_limit_title]', $fs_limit_title, $mainContent);
 
 $mainTitle = str_replace('[helpLink]', $template->getSection('HelpLink'), $mainTitle);
 $mainTitle = str_replace('[errMsg]', $msg, $mainTitle);
@@ -140,10 +183,10 @@ $mainTitle = str_replace('[errMsg]', $msg, $mainTitle);
  */
 function parseAIML($fn, $aimlContent, $from_zip = false)
 {
-    global $dbConn, $msg, $debugmode, $bot_id, $charset;
+    global $msg, $debugmode, $bot_id, $charset, $bot_name;
+    $duplicates = array();
 
     $post_vars = filter_input_array(INPUT_POST);
-    file_put_contents(_LOG_PATH_ . 'post_vars.txt', print_r($post_vars, true));
 
     if (empty ($aimlContent))
     {
@@ -153,6 +196,10 @@ function parseAIML($fn, $aimlContent, $from_zip = false)
     $skipVal = (isset($post_vars['skipVal'])) ? true : false;
     //trigger_error(() ? "true" : 'false');
     $fileName = basename($fn);
+    if (isset($bot_name))
+    {
+        $fileName = str_replace("{$bot_name}.", '', $fileName);
+    }
     $success = false;
     $topic = '';
     #Clear the database of the old entries
@@ -204,7 +251,7 @@ function parseAIML($fn, $aimlContent, $from_zip = false)
             $msg = wordwrap($msg, 80, "<br>\n");
             $_SESSION['failCount']++;
         }
-        elseif (!$skipVal && !$xml->schemaValidate('aiml.xsd'))
+        elseif (!$skipVal && !$xml->schemaValidate(_ADMIN_PATH_ . 'aiml.xsd'))
         {
             $msg = "<div class=\"center\"><b>A total of [count] error[plural] been found in the file $fileName.</b></div><br><br>\n";
             $xmlErrCount = 0;
@@ -246,15 +293,20 @@ function parseAIML($fn, $aimlContent, $from_zip = false)
                         $template = trim($template);
                         # Strip CRLF and LF from category (Windows/mac/*nix)
                         $aiml_add = str_replace(array("\r\n", "\n"), '', $fullCategory);
+                        $duplicatesIndex = hash('sha1', "{$topic} {$aiml_add}"); // use a HASH for the duplicates array's indices to save memory
+                        if (!in_array($duplicatesIndex, $duplicates))
+                        {
+                            $params[] = array(
+                                ':bot_id' => $bot_id,
+                                ':pattern' => $pattern,
+                                ':that' => $that,
+                                ':template' => $template,
+                                ':topic' => $topic,
+                                ':fileName' => $fileName
+                            );
+                            $duplicates[] = $duplicatesIndex;
+                        }
 
-                        $params[] = array(
-                            ':bot_id' => $bot_id,
-                            ':pattern' => $pattern,
-                            ':that' => $that,
-                            ':template' => $template,
-                            ':topic' => $topic,
-                            ':fileName' => $fileName
-                        );
                     }
                 }
             }
@@ -280,14 +332,19 @@ function parseAIML($fn, $aimlContent, $from_zip = false)
                     $template = trim($template);
                     # Strip CRLF and LF from category (Windows/mac/*nix)
                     $aiml_add = str_replace(array("\r\n", "\n"), '', $fullCategory);
-                    $params[] = array(
-                        ':bot_id' => $bot_id,
-                        ':pattern' => $pattern,
-                        ':that' => $that,
-                        ':template' => $template,
-                        ':topic' => '',
-                        ':fileName' => $fileName
-                    );
+                    $duplicatesIndex = hash('sha1', $aiml_add); // use a HASH for the duplicates array's indices to save memory
+                    if (!in_array($duplicatesIndex, $duplicates))
+                    {
+                        $params[] = array(
+                            ':bot_id' => $bot_id,
+                            ':pattern' => $pattern,
+                            ':that' => $that,
+                            ':template' => $template,
+                            ':topic' => '',
+                            ':fileName' => $fileName
+                        );
+                        $duplicates[] = $duplicatesIndex;
+                    }
                 }
             }
 
@@ -329,13 +386,13 @@ function parseAIML($fn, $aimlContent, $from_zip = false)
  */
 function processUpload()
 {
-    global $msg, $ZIPenabled;
+    global $msg, $ZIPenabled, $fs_limit, $bot_name;
     // Validate the uploaded file
     if ($_FILES['aimlfile']['size'] === 0 || empty($_FILES['aimlfile']['tmp_name']))
     {
         $msg = 'No file was selected.';
     }
-    elseif ($_FILES['aimlfile']['size'] > 2000000)
+    elseif ($_FILES['aimlfile']['size'] > $fs_limit)
     {
         $msg = 'The file was too large.';
     }
@@ -384,11 +441,12 @@ function processUpload()
  */
 function getAIML_List()
 {
-    global $dbConn, $dbn, $bot_id;
+    global $bot_id;
     $out = "                  <!-- Start List of Currently Stored AIML files -->\n";
     /** @noinspection SqlDialectInspection */
-    $sql = "SELECT DISTINCT filename FROM `aiml` WHERE `bot_id` = $bot_id ORDER BY `filename`;";
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $sql = "SELECT DISTINCT filename FROM `aiml` WHERE `bot_id` = :bot_id ORDER BY `filename`;";
+    $params = array(':bot_id' => $bot_id);
+    $result = db_fetchAll($sql, $params, __FILE__, __FUNCTION__, __LINE__);
 
     foreach ($result as $row)
     {
@@ -412,12 +470,12 @@ function getAIML_List()
  */
 function getBotList()
 {
-    global $dbConn, $dbn, $bot_id;
+    global $bot_id;
     $botOptions = '';
 
     /** @noinspection SqlDialectInspection */
     $sql = 'SELECT `bot_name`, `bot_id` FROM `bots` ORDER BY `bot_id`;';
-    $result = db_fetchAll($sql, null, __FILE__, __FUNCTION__, __LINE__);
+    $result = db_fetchAll($sql,null, __FILE__, __FUNCTION__, __LINE__);
 
     foreach ($result as $row)
     {
@@ -434,7 +492,7 @@ function getBotList()
  * Function upload_libxml_display_errors
  *
  * @param $fileName
- * @return string
+ * @return array
  */
 function upload_libxml_display_errors($fileName)
 {
@@ -493,6 +551,7 @@ function upload_libxml_display_error($error)
  */
 function processZip($fileName)
 {
+    global $bot_name;
     $out = '';
     $_SESSION['failCount'] = 0;
     $zipName = basename($fileName);
@@ -575,7 +634,7 @@ function validateAIML($xml)
     global $validationStatus;
     $out = true;
 
-    if (!$xml->schemaValidate('aiml.xsd'))
+    if (!$xml->schemaValidate(_ADMIN_PATH_ . 'aiml.xsd'))
     {
         get_errors();
         $out = false;
