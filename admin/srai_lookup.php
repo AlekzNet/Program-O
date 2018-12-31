@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.*
+ * Version: 2.6.11
  * FILE: srai_lookup.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 05-26-2014
@@ -207,7 +207,7 @@ function fillLookup()
     //save_file(_LOG_PATH_ . 'lookups.txt', print_r($lookups, true));
     /** @noinspection SqlDialectInspection */
     // db_multi_insert($tableName, $data,  $file = 'unknown', $function = 'unknown', $line = 'unknown')
-    $insertResult = db_multi_insert('srai_lookup', $lookups, true, __FILE__, __FUNCTION__, __LINE__);
+    $insertResult = db_multi_insert('srai_lookup', $lookups, __FILE__, __FUNCTION__, __LINE__);
     $insertCount = number_format($insertResult);
 
     // Now put the index back, and remove the temporary one

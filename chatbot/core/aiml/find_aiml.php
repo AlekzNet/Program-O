@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.*
+ * Version: 2.6.11
  * FILE: find_aiml.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -151,7 +151,7 @@ function unset_all_bad_pattern_matches(&$convoArr, $allrows, $lookingfor)
             $tmp_rows[$i]['score'] = 1;
             $tmp_rows[$i]['track_score'] = " thatpattern match and a pattern match";
         }
-        elseif ($aiml_pattern == $lookingfor_lc) {
+        elseif ($aiml_pattern == $lookingfor_lc && $aiml_thatpatternmatch) {
             $tmp_rows[$i]['score'] = 1;
             $tmp_rows[$i]['track_score'] = " direct pattern match";
         }
@@ -1027,7 +1027,7 @@ function find_aiml_matches(&$convoArr)
     if (!empty($storedtopic))
     {
         $topic_like = "\n        OR " . str_replace('[search]', $storedtopic, $rplTemplate);
-        $topic_like = str_replace('[field]', 'thatpattern', $topic_like);
+        $topic_like = str_replace('[field]', 'topic', $topic_like);
     }
 
 
@@ -1114,7 +1114,7 @@ function get_topic(&$convoArr)
         ':user_id' => $user_id,
     );
     $row = db_fetch($sql, $params, __FILE__, __FUNCTION__, __LINE__);
-    $num_rows = empty($row) ? 0 : count($row);
+    $num_rows = is_array($row) ? count($row) : 0;
     $retval = ($num_rows == 0) ? '' : $row['value'];
 
     return $retval;

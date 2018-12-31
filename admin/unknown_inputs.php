@@ -3,7 +3,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.*
+ * Version: 2.6.11
  * FILE: unknown_inputs.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 12-12-2014
@@ -220,7 +220,7 @@ endForm;
  * @param $id
  * @return mixed|string
  */
-function get_unknown_inputs($id)
+function get_unknown_inputs($id, $show)
 {
     $bot_name = (isset ($_SESSION['poadmin']['bot_name'])) ? $_SESSION['poadmin']['bot_name'] : 'Bot';
     $bot_id = (isset ($_SESSION['poadmin']['bot_id'])) ? $_SESSION['poadmin']['bot_id'] : 0;

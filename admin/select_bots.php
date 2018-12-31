@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.*
+ * Version: 2.6.11
  * FILE: select_bots.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: 12-09-2014
@@ -385,7 +385,7 @@ VALUES (NULL,:bot_name,:bot_desc,:bot_active,:bot_parent_id,:format,:save_state,
     $bot_id = $_SESSION['poadmin']['bot_id'];
     $_SESSION['poadmin']['bot_name'] = $post_vars['bot_name'];
     $bot_name = $_SESSION['poadmin']['bot_name'];
-    $msg .= make_bot_predicates($bot_id);
+    $msg .= make_bot_predicates($bot_id,$bot_name);
 
     return $msg;
 }
@@ -396,9 +396,9 @@ VALUES (NULL,:bot_name,:bot_desc,:bot_active,:bot_parent_id,:format,:save_state,
  * @param $bot_id
  * @return string
  */
-function make_bot_predicates($bot_id)
+function make_bot_predicates($bot_id,$bot_name)
 {
-    global $bot_name;
+
     $msg = '';
 
     $sql = <<<endSQL

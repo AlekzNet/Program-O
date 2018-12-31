@@ -2,7 +2,7 @@
 /***************************************
  * http://www.program-o.com
  * PROGRAM O
- * Version: 2.6.*
+ * Version: 2.6.11
  * FILE: index.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: FEB 01 2016
@@ -62,6 +62,7 @@ if (!array_key_exists($page, $allowed_pages))
     $msg = 'Invalid argument!';
 }
 
+$allowed_functions_array = array('updateBot','addBotPersonality','getBot','showBugForm','sendMail');
 $allowed_input_vars = (isset($allowed_pages[$page])) ? $allowed_pages[$page] : array();
 $form_vars = clean_inputs($allowed_input_vars);
 
@@ -532,6 +533,7 @@ function makeLeftLinks()
  */
 function getCurrentVersion($branch)
 {
+    if(isset($_SESSION['GitHubVersion'])) return $_SESSION['GitHubVersion'];
     $versionURLtemplate = 'https://raw.githubusercontent.com/Program-O/Program-O/[branch]/version.txt';
     $url = str_replace('[branch]', $branch, $versionURLtemplate);
     //file_put_contents("../logs/index.getCurrentVersion.branch_url.txt", print_r($url, true));

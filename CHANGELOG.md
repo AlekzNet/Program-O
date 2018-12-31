@@ -1,13 +1,17 @@
 # [Program O](http://www.program-o.com)
 
-##CHANGELOG info:
+## CHANGELOG info:
 
-- Version: 2.6.*
-- Authors: Elizabeth Perreau and Dave Morton
-- Date: June 19th 2017
+- Version: 2.6.11
+- Date: October 04th 2018
 
 
-##Version History:
+## Version History:
+2.7.0
+    #452 Bug Fix - Input boxes in Bot Personality Settings disappear after filling the 3rd column
+
+2.6.11
+    #433 Hot fix patch to temporarily plug the hole caused by the CSRF vunerability
 
 2.6.10  Code Cleanup, another round of bug fixes
 

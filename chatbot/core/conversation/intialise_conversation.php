@@ -3,7 +3,7 @@
 /***************************************
  * www.program-o.com
  * PROGRAM O
- * Version: 2.6.*
+ * Version: 2.6.11
  * FILE: chatbot/core/conversation/intialise_conversation.php
  * AUTHOR: Elizabeth Perreau and Dave Morton
  * DATE: MAY 17TH 2014
@@ -153,7 +153,11 @@ function write_to_session($convoArr)
 function read_from_session()
 {
     runDebug(__FILE__, __FUNCTION__, __LINE__, "Reading from session", 4);
-    $convoArr = array();
+    $convoArr = array(
+        'say'          => '',
+        'conversation' => array(),
+        'aiml'         => array(),
+    );
 
     //initialise
     if (isset ($_SESSION['programo']))
@@ -788,7 +792,7 @@ function load_that($convoArr)
         $tmpThat = array();
         $tmpRawThat = array();
         $tmpInput = array();
-        $puncuation = array(',', '?', ';', '!');
+        $puncuation = array('?', ';', '!');
 
         foreach ($result as $row)
         {
@@ -805,28 +809,21 @@ function load_that($convoArr)
         foreach ($tmpThatRows as $row)
         {
             $row = str_replace($puncuation, '.', $row);
-            $tmpThat[] = explode('.', $row);
+            $tmpThat[] = array_filter(explode('.', $row));
         }
-
-        array_unshift($tmpThat, NULL);
-        unset ($tmpThat[0]);
 
         foreach ($tmpRawThatRows as $row)
         {
             $tmpRawThat[] = explode('.', $row);
         }
 
-        array_unshift($tmpRawThat, NULL);
-        unset ($tmpRawThat[0]);
         $convoArr['raw_that'] = $tmpRawThat;
 
         foreach ($tmpThat as $index => $value)
         {
-            $value = implode_recursive(' ', $value, __FILE__, __FUNCTION__, __LINE__);
-            $value = clean_that($value, __FILE__, __FUNCTION__, __LINE__);
+            $value = clean_that($value[count($value) - 1], __FILE__, __FUNCTION__, __LINE__);
             $convoArr = push_on_front_convoArr('that', $value, $convoArr);
         }
-
 
         runDebug(__FILE__, __FUNCTION__, __LINE__, 'Loading previous user inputs into the ~INPUT~ array.', 4);
         $tmpInputRows = array_reverse($tmpInputRows);
@@ -836,10 +833,6 @@ function load_that($convoArr)
             $row = str_replace($puncuation, '.', $row);
             $tmpInput[] = explode('.', $row);
         }
-
-        array_unshift($tmpThat, NULL);
-        unset ($tmpThat[0]);
-
 
         foreach ($tmpInput as $index => $value)
         {
